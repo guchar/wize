@@ -1,30 +1,22 @@
 import SwiftUI
 import GoogleGenerativeAI
 
-struct RainbowLoadingBar: View {
-    let progress: Double
+struct SimpleLoadingBar: View {
+    @Binding var progress: Double
     
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
-                    .cornerRadius(5)
+                    .frame(height: 10)
                 
                 Rectangle()
-                    .fill(LinearGradient(gradient: Gradient(colors: [.red, .orange, .yellow, .green, .blue, .purple]), startPoint: .leading, endPoint: .trailing))
-                    .frame(width: CGFloat(self.progress) * geometry.size.width)
-                    .cornerRadius(5)
+                    .fill(Color.blue)
+                    .frame(width: min(CGFloat(self.progress) * geometry.size.width, geometry.size.width), height: 10)
             }
+            .cornerRadius(5)
         }
-    }
-}
-
-struct RainbowProgressViewStyle: ProgressViewStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        RainbowLoadingBar(progress: configuration.fractionCompleted ?? 0)
-            .frame(height: 10)
-            .padding()
     }
 }
 
@@ -65,14 +57,6 @@ extension String {
     }
 }
 
-struct ImageSearchResult: Codable {
-    let items: [ImageItem]
-}
-
-struct ImageItem: Codable {
-    let link: String
-}
-
 struct ContentView: View {
     @State private var topic: String = ""
     @State private var units: [Unit] = []
@@ -82,51 +66,78 @@ struct ContentView: View {
     @State private var loadingProgress: Double = 0.0
     @State private var errorMessage: String?
     @State private var debugText: String = ""
+    @State private var loadingMessage: String = "Initializing your learning journey..."
     
-    let model = GenerativeModel(name: "gemini-pro", apiKey: "AIzaSyAaRL63xqME8m4HeowWvT8jXZvvMp55rP8")
+    let model = GenerativeModel(name: "gemini-pro", apiKey: "AIzaSyCjTPZDl4OWfSFVuuNK4QCqjepfr4NnBmQ")
+    
+    let loadingMessages = [
+        "Creating knowledge...",
+        "Designing your future...",
+        "Becoming your best self...",
+        "Unlocking potential...",
+        "Crafting brilliance...",
+        "Igniting curiosity...",
+        "Forging wisdom...",
+        "Sculpting intellect...",
+        "Brewing insights...",
+        "Planting seeds of knowledge..."
+    ]
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Microlearning")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                HStack {
-                    TextField("Enter a topic...", text: $topic)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+            NavigationView {
+                VStack(spacing: 20) {
+                    Text("Microlearning")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
                     
-                    Button(action: generateLesson) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Color.blue)
-                            .cornerRadius(10)
+                    HStack {
+                        TextField("Enter a topic...", text: $topic)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Button(action: generateLesson) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.white)
+                                .padding(10)
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                        .disabled(isLoading)
                     }
-                    .disabled(isLoading)
+                    .padding(.horizontal)
+                    
+                    if isLoading {
+                        VStack {
+                            Text(loadingMessage)
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .padding(.bottom, 5)
+                            
+                            ProgressView(value: loadingProgress)
+                                .progressViewStyle(LinearProgressViewStyle())
+                                .frame(height: 4)
+                                .padding(.horizontal)
+                        }
+                    } else if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                    } else if !units.isEmpty {
+                        UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex)
+                    }
+                    
+                    if !debugText.isEmpty {
+                        Text(debugText)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
                 }
-                .padding(.horizontal)
-                
-                if isLoading {
-                    ProgressView(value: loadingProgress)
-                        .progressViewStyle(RainbowProgressViewStyle())
-                } else if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                } else if !units.isEmpty {
-                    UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex)
-                }
-                
-                if !debugText.isEmpty {
-                    Text(debugText)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                
-                Spacer()
+                .navigationBarHidden(true)
             }
-            .navigationBarHidden(true)
         }
+    
+    func updateLoadingMessage() {
+        loadingMessage = loadingMessages.randomElement() ?? "Loading..."
     }
     
     func generateLesson() {
@@ -137,29 +148,34 @@ struct ContentView: View {
         units.removeAll()
         currentUnitIndex = 0
         currentCardIndex = 0
+        updateLoadingMessage()
         
-        let prompt = """
-        Create a structured microlearning curriculum for the topic: \(topic).
-        Provide exactly 5 main units, each covering a unique aspect of the topic.
-        For each unit, provide exactly 3 key points or concepts.
-        Format your response as follows:
-
-        UNIT: [Unit 1 Title]
-        TITLE: [Title for point 1]
-        CONTENT: [Explanation for point 1, keep it under 50 words]
-        TITLE: [Title for point 2]
-        CONTENT: [Explanation for point 2, keep it under 50 words]
-        TITLE: [Title for point 3]
-        CONTENT: [Explanation for point 3, keep it under 50 words]
-        ---
-        UNIT: [Unit 2 Title]
-        ... (repeat the structure for all 5 units)
-
-        Ensure each unit has a clear, distinct focus within the overall topic.
-        Do not use any markdown formatting. Use plain text only.
-        """
+        let maxRetries = 3
+        var currentRetry = 0
         
-        Task {
+        func attemptGeneration() async {
+            let prompt = """
+            Create a structured microlearning curriculum for the topic: \(topic).
+            Provide exactly 5 main units, each covering a unique aspect of the topic.
+            For each unit, provide exactly 3 key points or concepts.
+            Format your response as follows:
+
+            UNIT: [Unit 1 Title]
+            TITLE: [Title for point 1]
+            CONTENT: [Explanation for point 1, keep it under 50 words]
+            TITLE: [Title for point 2]
+            CONTENT: [Explanation for point 2, keep it under 50 words]
+            TITLE: [Title for point 3]
+            CONTENT: [Explanation for point 3, keep it under 50 words]
+            ---
+            UNIT: [Unit 2 Title]
+            ... (repeat the structure for all 5 units)
+
+            Ensure each unit has a clear, distinct focus within the overall topic.
+            Do not use any markdown formatting. Use plain text only.
+            It is crucial that you provide exactly 5 units, no more and no less.
+            """
+            
             do {
                 let stream = try await model.generateContentStream(prompt)
                 var fullText = ""
@@ -169,44 +185,45 @@ struct ContentView: View {
                         fullText += text
                         print("Received chunk: \(text)")  // Debugging line
                         await processStreamChunk(fullText)
-                        loadingProgress = min(1.0, loadingProgress + 0.02)
+                        loadingProgress = min(1.0, Double(currentRetry) / Double(maxRetries) + loadingProgress / Double(maxRetries))
+                        updateLoadingMessage()
                     }
                 }
                 
                 DispatchQueue.main.async {
                     if self.units.count != 5 {
-                        self.errorMessage = "Error: Incorrect number of units generated"
                         self.debugText = "Generated \(self.units.count) units instead of 5"
+                        if currentRetry < maxRetries {
+                            currentRetry += 1
+                            self.debugText += ". Retrying (\(currentRetry)/\(maxRetries))"
+                            Task { await attemptGeneration() }
+                        } else {
+                            self.errorMessage = "Error: Unable to generate the correct number of units after \(maxRetries) attempts."
+                            self.isLoading = false
+                        }
                     } else {
                         self.debugText = "Successfully processed 5 units"
+                        self.isLoading = false
                     }
+                }
+            } catch let error as GoogleGenerativeAI.GenerateContentError {
+                DispatchQueue.main.async {
+                    self.errorMessage = "GenerateContentError: \(error.localizedDescription)"
+                    self.debugText = "Error details: \(error)"
                     self.isLoading = false
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.errorMessage = "Error: \(error.localizedDescription)"
-                    self.debugText = "An error occurred while generating the lesson. Please try again."
+                    self.debugText = "An unexpected error occurred. Please try again."
                     self.isLoading = false
                 }
             }
         }
-    }
-    
-    func fetchImageURL(for query: String) async throws -> String? {
-        let apiKey = "AIzaSyAaRL63xqME8m4HeowWvT8jXZvvMp55rP8"
-        let searchEngineID = "05abf1f17dbfa4761"
-        let baseURL = "https://www.googleapis.com/customsearch/v1"
         
-        let urlString = "\(baseURL)?key=\(apiKey)&cx=\(searchEngineID)&q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&searchType=image&imgSize=medium&num=1"
-        
-        guard let url = URL(string: urlString) else {
-            throw URLError(.badURL)
+        Task {
+            await attemptGeneration()
         }
-        
-        let (data, _) = try await URLSession.shared.data(from: url)
-        let result = try JSONDecoder().decode(ImageSearchResult.self, from: data)
-        
-        return result.items.first?.link
     }
     
     func processStreamChunk(_ chunk: String) async {
@@ -226,14 +243,7 @@ struct ContentView: View {
                 } else if line.starts(with: "TITLE:") {
                     if !currentTitle.isEmpty && !currentContent.isEmpty {
                         let category = ContentCategory.matchCategory(for: currentContent)
-                        let imageQuery = "\(currentTitle) \(category.rawValue)"
-                        do {
-                            let imageURL = try await fetchImageURL(for: imageQuery)
-                            cards.append(Card(title: currentTitle, content: currentContent, category: category, imageURL: imageURL))
-                        } catch {
-                            print("Failed to fetch image for \(currentTitle): \(error)")
-                            cards.append(Card(title: currentTitle, content: currentContent, category: category))
-                        }
+                        cards.append(Card(title: currentTitle, content: currentContent, category: category))
                         currentContent = ""
                     }
                     currentTitle = line.replacingOccurrences(of: "TITLE:", with: "").trimmingCharacters(in: .whitespaces)
@@ -246,14 +256,7 @@ struct ContentView: View {
             
             if !currentTitle.isEmpty && !currentContent.isEmpty {
                 let category = ContentCategory.matchCategory(for: currentContent)
-                let imageQuery = "\(currentTitle) \(category.rawValue)"
-                do {
-                    let imageURL = try await fetchImageURL(for: imageQuery)
-                    cards.append(Card(title: currentTitle, content: currentContent, category: category, imageURL: imageURL))
-                } catch {
-                    print("Failed to fetch image for \(currentTitle): \(error)")
-                    cards.append(Card(title: currentTitle, content: currentContent, category: category))
-                }
+                cards.append(Card(title: currentTitle, content: currentContent, category: category))
             }
             
             if !unitTitle.isEmpty && !cards.isEmpty {
@@ -263,23 +266,9 @@ struct ContentView: View {
         
         DispatchQueue.main.async {
             self.units = processedUnits
-            self.debugText = "Processed \(processedUnits.count) units"
+            self.updateLoadingMessage()
         }
     }
-}
-
-struct Unit: Identifiable {
-    let id = UUID()
-    let title: String
-    let cards: [Card]
-}
-
-struct Card: Identifiable {
-    let id = UUID()
-    let title: String
-    let content: String
-    let category: ContentCategory
-    var imageURL: String?
 }
 
 struct UnitView: View {
@@ -289,15 +278,17 @@ struct UnitView: View {
     
     var body: some View {
         VStack {
-            HStack {
-                Text("Unit \(currentUnitIndex + 1): \(units[currentUnitIndex].title)")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-            }
-            .padding(.horizontal)
+            Text("Unit \(currentUnitIndex + 1): \(units[currentUnitIndex].title)")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
             
             CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex)
+
             
             HStack {
                 Button(action: previousCard) {
@@ -438,10 +429,31 @@ struct CardContent: View {
                     .font(.body)
             }
         }
-        .padding(20)
+        .padding(.vertical, 10)  // Adjusted vertical padding to match unit heading
+        .padding(.horizontal)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
         .cornerRadius(10)
         .shadow(radius: 5)
+        .padding(.horizontal)  // Added horizontal padding to match unit heading
+    }
+}
+
+struct Card: Identifiable {
+    let id = UUID()
+    let title: String
+    let content: String
+    let category: ContentCategory
+}
+
+struct Unit: Identifiable {
+    let id = UUID()
+    let title: String
+    let cards: [Card]
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
     }
 }
