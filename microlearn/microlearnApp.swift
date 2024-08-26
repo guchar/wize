@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-@main
+
 struct microlearnApp: App {
     var body: some Scene {
         WindowGroup {

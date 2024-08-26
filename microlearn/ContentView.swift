@@ -93,6 +93,24 @@ struct ContentView: View {
         "Planting seeds of knowledge..."
     ]
 
+    let randomSkills = [
+        "How to tie a tie",
+        "How to whistle",
+        "How to blow a bubble with gum",
+        "How to juggle",
+        "How to fold a paper airplane",
+        "How to do a magic trick",
+        "How to make origami",
+        "How to solve a Rubik's cube",
+        "How to do a cartwheel",
+        "How to moonwalk",
+        "How to make a perfect omelet",
+        "How to skip stones",
+        "How to do a French braid",
+        "How to beatbox",
+        "How to do a coin roll"
+    ]
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -110,6 +128,19 @@ struct ContentView: View {
                 .edgesIgnoringSafeArea(.all)
 
                 VStack {
+                    Button(action: learnRandomSkill) {
+                        Text("Learn a Random Skill")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 20)
+                            .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
+                                                       startPoint: .leading,
+                                                       endPoint: .trailing))
+                            .cornerRadius(20)
+                    }
+                    .padding(.top, 20)
+
                     Spacer()
 
                     Image("logoicon")
@@ -233,6 +264,16 @@ struct ContentView: View {
                         Text(errorMessage)
                             .foregroundColor(.red)
                     } else if !units.isEmpty {
+                        Text("Currently Learning: \(topic)")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.black.opacity(0.3))
+                            .cornerRadius(10)
+                            .padding(.horizontal)
+                            .padding(.bottom, 10)
+
                         UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex)
 
                         HStack(spacing: 20) {
@@ -281,6 +322,13 @@ struct ContentView: View {
         .onAppear {
             loadSavedContent()
             loadRecentSearches()
+        }
+    }
+
+    func learnRandomSkill() {
+        topic = randomSkills.randomElement() ?? "How to tie a tie"
+        Task {
+            await generateLesson()
         }
     }
 
@@ -792,46 +840,55 @@ struct CardContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(card.title)
-                .font(.headline)
-                .foregroundColor(.purple)
-                .padding(.bottom, 5)
+                            .font(.headline)
+                            .foregroundColor(.purple)
+                            .padding(.bottom, 5)
 
-            ScrollView {
-                Text(card.content)
-                    .font(.body)
-                    .foregroundColor(.black)
+                        ScrollView {
+                            Text(card.content)
+                                .font(.body)
+                                .foregroundColor(.black)
+                        }
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                }
             }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-    }
-}
 
-struct Card: Identifiable, Codable {
-    let id: UUID
-    let title: String
-    let content: String
-    let category: ContentCategory
+            struct Card: Identifiable, Codable {
+                let id: UUID
+                let title: String
+                let content: String
+                let category: ContentCategory
 
-    init(id: UUID = UUID(), title: String, content: String, category: ContentCategory) {
-        self.id = id
-        self.title = title
-        self.content = content
-        self.category = category
-    }
-}
+                init(id: UUID = UUID(), title: String, content: String, category: ContentCategory) {
+                    self.id = id
+                    self.title = title
+                    self.content = content
+                    self.category = category
+                }
+            }
 
-struct Unit: Identifiable, Codable {
-    let id: UUID
-    let title: String
-    let cards: [Card]
+            struct Unit: Identifiable, Codable {
+                let id: UUID
+                let title: String
+                let cards: [Card]
 
-    init(id: UUID = UUID(), title: String, cards: [Card]) {
-        self.id = id
-        self.title = title
-        self.cards = cards
-    }
-}
+                init(id: UUID = UUID(), title: String, cards: [Card]) {
+                    self.id = id
+                    self.title = title
+                    self.cards = cards
+                }
+            }
+
+            @main
+            struct YourAppNameApp: App {
+                var body: some Scene {
+                    WindowGroup {
+                        ContentView()
+                    }
+                }
+            }
