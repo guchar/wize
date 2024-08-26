@@ -97,9 +97,10 @@ struct ContentView: View {
                 VStack {
                     Spacer()
                     
-                    Text("WIZE")
-                        .font(.system(size: 64, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                    Image("logoicon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 250) // Increased from 100 to 250 (2.5 times larger)
                         .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
                     
                     if showSearchBar {
@@ -390,164 +391,164 @@ struct UnitView: View {
                 Spacer()
                 
                 ForEach(0..<units[currentUnitIndex].cards.count, id: \.self) { index in
-                                    Circle()
-                                        .fill(index == currentCardIndex ? Color.white : Color.gray)
-                                        .frame(width: 8, height: 8)
-                                }
-                                
-                                Spacer()
-                                
-                                Button(action: nextCard) {
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.white)
+                    Circle()
+                        .fill(index == currentCardIndex ? Color.white : Color.gray)
+                        .frame(width: 8, height: 8)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Button(action: nextCard) {
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .padding()
+                                    
+                                    HStack {
+                                        Button(action: previousUnit) {
+                                            Text("Previous Unit")
+                                                .foregroundColor(.white)
+                                        }
+                                        .disabled(currentUnitIndex == 0)
+                                        
+                                        Spacer()
+                                        
+                                        Text("\(currentUnitIndex + 1) / \(units.count)")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                        
+                                        Spacer()
+                                        
+                                        Button(action: nextUnit) {
+                                            Text("Next Unit")
+                                                .foregroundColor(.white)
+                                        }
+                                        .disabled(currentUnitIndex == units.count - 1)
+                                    }
+                                    .padding()
                                 }
                             }
-                            .padding()
                             
-                            HStack {
-                                Button(action: previousUnit) {
-                                    Text("Previous Unit")
-                                        .foregroundColor(.white)
-                                }
-                                .disabled(currentUnitIndex == 0)
-                                
-                                Spacer()
-                                
-                                Text("\(currentUnitIndex + 1) / \(units.count)")
-                                    .font(.caption)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Button(action: nextUnit) {
-                                    Text("Next Unit")
-                                        .foregroundColor(.white)
-                                }
-                                .disabled(currentUnitIndex == units.count - 1)
-                            }
-                            .padding()
-                        }
-                    }
-                    
-                    func previousUnit() {
-                        if currentUnitIndex > 0 {
-                            withAnimation {
-                                currentUnitIndex -= 1
-                                currentCardIndex = 0
-                            }
-                        }
-                    }
-                    
-                    func nextUnit() {
-                        if currentUnitIndex < units.count - 1 {
-                            withAnimation {
-                                currentUnitIndex += 1
-                                currentCardIndex = 0
-                            }
-                        }
-                    }
-                    
-                    func previousCard() {
-                        if currentCardIndex > 0 {
-                            withAnimation {
-                                currentCardIndex -= 1
-                            }
-                        } else if currentUnitIndex > 0 {
-                            withAnimation {
-                                currentUnitIndex -= 1
-                                currentCardIndex = units[currentUnitIndex].cards.count - 1
-                            }
-                        }
-                    }
-                    
-                    func nextCard() {
-                        if currentCardIndex < units[currentUnitIndex].cards.count - 1 {
-                            withAnimation {
-                                currentCardIndex += 1
-                            }
-                        } else if currentUnitIndex < units.count - 1 {
-                            withAnimation {
-                                currentUnitIndex += 1
-                                currentCardIndex = 0
-                            }
-                        }
-                    }
-                }
-
-                struct CardView: View {
-                    let cards: [Card]
-                    @Binding var currentIndex: Int
-                    
-                    var body: some View {
-                        GeometryReader { geometry in
-                            VStack {
-                                ZStack {
-                                    ForEach(cards.indices, id: \.self) { index in
-                                        CardContent(card: cards[index])
-                                            .opacity(index == currentIndex ? 1 : 0)
-                                            .scaleEffect(index == currentIndex ? 1 : 0.5)
+                            func previousUnit() {
+                                if currentUnitIndex > 0 {
+                                    withAnimation {
+                                        currentUnitIndex -= 1
+                                        currentCardIndex = 0
                                     }
                                 }
-                                .gesture(
-                                    DragGesture()
-                                        .onEnded { value in
-                                            if value.translation.width < -50 && currentIndex < cards.count - 1 {
-                                                withAnimation {
-                                                    currentIndex += 1
-                                                }
-                                            } else if value.translation.width > 50 && currentIndex > 0 {
-                                                withAnimation {
-                                                    currentIndex -= 1
-                                                }
+                            }
+                            
+                            func nextUnit() {
+                                if currentUnitIndex < units.count - 1 {
+                                    withAnimation {
+                                        currentUnitIndex += 1
+                                        currentCardIndex = 0
+                                    }
+                                }
+                            }
+                            
+                            func previousCard() {
+                                if currentCardIndex > 0 {
+                                    withAnimation {
+                                        currentCardIndex -= 1
+                                    }
+                                } else if currentUnitIndex > 0 {
+                                    withAnimation {
+                                        currentUnitIndex -= 1
+                                        currentCardIndex = units[currentUnitIndex].cards.count - 1
+                                    }
+                                }
+                            }
+                            
+                            func nextCard() {
+                                if currentCardIndex < units[currentUnitIndex].cards.count - 1 {
+                                    withAnimation {
+                                        currentCardIndex += 1
+                                    }
+                                } else if currentUnitIndex < units.count - 1 {
+                                    withAnimation {
+                                        currentUnitIndex += 1
+                                        currentCardIndex = 0
+                                    }
+                                }
+                            }
+                        }
+
+                        struct CardView: View {
+                            let cards: [Card]
+                            @Binding var currentIndex: Int
+                            
+                            var body: some View {
+                                GeometryReader { geometry in
+                                    VStack {
+                                        ZStack {
+                                            ForEach(cards.indices, id: \.self) { index in
+                                                CardContent(card: cards[index])
+                                                    .opacity(index == currentIndex ? 1 : 0)
+                                                    .scaleEffect(index == currentIndex ? 1 : 0.5)
                                             }
                                         }
-                                )
+                                        .gesture(
+                                            DragGesture()
+                                                .onEnded { value in
+                                                    if value.translation.width < -50 && currentIndex < cards.count - 1 {
+                                                        withAnimation {
+                                                            currentIndex += 1
+                                                        }
+                                                    } else if value.translation.width > 50 && currentIndex > 0 {
+                                                        withAnimation {
+                                                            currentIndex -= 1
+                                                        }
+                                                    }
+                                                }
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
-                }
 
-                struct CardContent: View {
-                    let card: Card
-                    
-                    var body: some View {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(card.title)
-                                .font(.headline)
-                                .foregroundColor(.purple)
-                                .padding(.bottom, 5)
+                        struct CardContent: View {
+                            let card: Card
                             
-                            ScrollView {
-                                Text(card.content)
-                                    .font(.body)
-                                    .foregroundColor(.black)
+                            var body: some View {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text(card.title)
+                                        .font(.headline)
+                                        .foregroundColor(.purple)
+                                        .padding(.bottom, 5)
+                                    
+                                    ScrollView {
+                                        Text(card.content)
+                                            .font(.body)
+                                            .foregroundColor(.black)
+                                    }
+                                }
+                                .padding(.vertical, 10)
+                                .padding(.horizontal)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.white)
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                                .padding(.horizontal)
                             }
                         }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        .padding(.horizontal)
-                    }
-                }
 
-                struct Card: Identifiable {
-                    let id = UUID()
-                    let title: String
-                    let content: String
-                    let category: ContentCategory
-                }
+                        struct Card: Identifiable {
+                            let id = UUID()
+                            let title: String
+                            let content: String
+                            let category: ContentCategory
+                        }
 
-                struct Unit: Identifiable {
-                    let id = UUID()
-                    let title: String
-                    let cards: [Card]
-                }
+                        struct Unit: Identifiable {
+                            let id = UUID()
+                            let title: String
+                            let cards: [Card]
+                        }
 
-                struct ContentView_Previews: PreviewProvider {
-                    static var previews: some View {
-                        ContentView()
-                    }
-                }
+                        struct ContentView_Previews: PreviewProvider {
+                            static var previews: some View {
+                                ContentView()
+                            }
+                        }
