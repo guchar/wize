@@ -446,7 +446,7 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     if showInappropriateContentWarning {
                         VStack(spacing: 20) {
-                            Text("WYZE doesn't want you learning that")
+                            Text("WIZE doesn't want you learning that")
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
