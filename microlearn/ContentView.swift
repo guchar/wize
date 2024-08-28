@@ -2,23 +2,62 @@ import SwiftUI
 import GoogleGenerativeAI
 import Foundation
 
-struct GradientLoadingBar: View {
-    @Binding var progress: Double
+struct ScatteredParticle: Identifiable {
+    let id = UUID()
+    var position: CGPoint
+    var opacity: Double
+}
+
+struct ScatteredQuantumLoader: View {
+    let particleCount = 25
+    let animationDuration: Double = 0.8 // Slower animation
+    let size: CGFloat = 200
+
+    @State private var particles: [ScatteredParticle] = []
+    @State private var isGathering = false
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 10)
-
-                LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                               startPoint: .leading,
-                               endPoint: .trailing)
-                    .frame(width: min(CGFloat(self.progress) * geometry.size.width, geometry.size.width), height: 10)
-                    .animation(.linear, value: progress)
+            ZStack {
+                ForEach(particles) { particle in
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 20, height: 20)
+                        .opacity(particle.opacity)
+                        .position(particle.position)
+                }
             }
-            .cornerRadius(5)
+            .frame(width: size, height: size)
+            .onAppear {
+                particles = (0..<particleCount).map { _ in
+                    ScatteredParticle(
+                        position: randomPosition(in: CGSize(width: size, height: size)),
+                        opacity: Double.random(in: 0.3...1.0)
+                    )
+                }
+                animateParticles()
+            }
+        }
+    }
+
+    private func randomPosition(in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: CGFloat.random(in: 0...size.width),
+            y: CGFloat.random(in: 0...size.height)
+        )
+    }
+
+    private func animateParticles() {
+        withAnimation(Animation.easeInOut(duration: animationDuration).repeatForever(autoreverses: true)) {
+            isGathering.toggle()
+            for i in 0..<particles.count {
+                if isGathering {
+                    particles[i].position = CGPoint(x: size / 2, y: size - 20)
+                } else {
+                    particles[i].position = randomPosition(in: CGSize(width: size, height: size))
+                }
+                particles[i].opacity = Double.random(in: 0.3...1.0)
+            }
         }
     }
 }
@@ -228,6 +267,7 @@ struct CardContent: View {
 struct CardView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
+    let onLastCardSwiped: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -250,6 +290,8 @@ struct CardView: View {
                                 withAnimation {
                                     currentIndex -= 1
                                 }
+                            } else if value.translation.width < -50 && currentIndex == cards.count - 1 {
+                                onLastCardSwiped()
                             }
                         }
                 )
@@ -277,7 +319,14 @@ struct UnitView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
 
-            CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex)
+            CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex) {
+                if currentUnitIndex < units.count - 1 {
+                    withAnimation {
+                        currentUnitIndex += 1
+                        currentCardIndex = 0
+                    }
+                }
+            }
 
             HStack {
                 Button(action: previousCard) {
@@ -377,7 +426,6 @@ struct ContentView: View {
     @State private var currentUnitIndex: Int = 0
     @State private var currentCardIndex: Int = 0
     @State private var isLoading = false
-    @State private var loadingProgress: Double = 0.0
     @State private var errorMessage: String?
     @State private var debugText: String = ""
     @State private var loadingMessage: String = "Initializing your learning journey..."
@@ -425,477 +473,324 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                Group {
-                    if showInappropriateContentWarning {
-                        LinearGradient(gradient: Gradient(colors: [Color.black, Color.red]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    } else if units.isEmpty {
-                        LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    } else {
-                        LinearGradient(gradient: Gradient(colors: [Color.green, Color.blue]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    }
-                }
-                .edgesIgnoringSafeArea(.all)
-
-                VStack(spacing: 20) {
-                    if showInappropriateContentWarning {
-                        VStack(spacing: 20) {
-                            Text("WIZE doesn't want you learning that")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .padding()
-
-                            Button(action: resetToMainPage) {
-                                Text("Learn Something New")
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 20)
-                                    .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                                               startPoint: .leading,
-                                                               endPoint: .trailing))
-                                    .cornerRadius(20)
+                    ZStack {
+                        Group {
+                            if showInappropriateContentWarning {
+                                LinearGradient(gradient: Gradient(colors: [Color.black, Color.red]),
+                                               startPoint: .top,
+                                               endPoint: .bottom)
+                            } else if units.isEmpty {
+                                LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                               startPoint: .top,
+                                               endPoint: .bottom)
+                            } else {
+                                LinearGradient(gradient: Gradient(colors: [Color.green, Color.blue]),
+                                               startPoint: .top,
+                                               endPoint: .bottom)
                             }
                         }
-                    } else if showSearchHistory {
-                        SearchHistoryView(
-                            recentSearches: $recentSearches, 
-                            savedContent: $savedContent,
-                                                        searchesToDelete: $searchesToDelete,
-                                                        onSelect: selectSearch,
-                                                        onDelete: deleteSelectedSearches,
-                                                        onDismiss: { showSearchHistory = false }
-                                                    )
-                                                } else {
-                                                    Button(action: learnRandomSkill) {
-                                                        Text("Learn a Random Skill")
-                                                            .fontWeight(.semibold)
-                                                            .foregroundColor(.white)
-                                                            .padding(.vertical, 12)
-                                                            .padding(.horizontal, 20)
-                                                            .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
-                                                                                       startPoint: .leading,
-                                                                                       endPoint: .trailing))
-                                                            .cornerRadius(20)
-                                                    }
-                                                    .padding(.top, 40)
+                        .edgesIgnoringSafeArea(.all)
 
-                                                    Image("logoicon")
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                        .frame(height: 150).shadow(color: .black.opacity(0.3), radius: 5,x: 0, y: 5)
+                        VStack(spacing: 20) {
+                            if showInappropriateContentWarning {
+                                VStack(spacing: 20) {
+                                    Text("WIZE doesn't want you learning that")
+                                        .font(.title)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+                                        .padding()
 
-                                                    if !units.isEmpty {
-                                                        Text("Currently Learning: \(topic)")
-                                                            .font(.headline)
-                                                            .foregroundColor(.white)
-                                                            .padding(.vertical, 10)
-                                                            .frame(maxWidth: .infinity)
-                                                            .background(Color.black.opacity(0.3))
-                                                            .cornerRadius(10)
-                                                            .padding(.horizontal)
-                                                    }
+                                    Button(action: resetToMainPage) {
+                                        Text("Learn Something New")
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 20)
+                                            .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                                       startPoint: .leading,
+                                                                       endPoint: .trailing))
+                                            .cornerRadius(20)
+                                    }
+                                }
+                            } else if showSearchHistory {
+                                SearchHistoryView(
+                                    recentSearches: $recentSearches,
+                                    savedContent: $savedContent,
+                                    searchesToDelete: $searchesToDelete,
+                                    onSelect: selectSearch,
+                                    onDelete: deleteSelectedSearches,
+                                    onDismiss: { showSearchHistory = false }
+                                )
+                            } else {
+                                Button(action: learnRandomSkill) {
+                                    Text("Learn a Random Skill")
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                        .padding(.vertical, 12)
+                                        .padding(.horizontal, 20)
+                                        .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
+                                                                   startPoint: .leading,
+                                                                   endPoint: .trailing))
+                                        .cornerRadius(20)
+                                }
+                                .padding(.top, 40)
 
-                                                    if showSearchBar {
-                                                        VStack(spacing: 20) {
-                                                            HStack {
-                                                                Image(systemName: "lightbulb.fill")
-                                                                    .foregroundColor(.yellow)
-                                                                    .font(.system(size: 24))
-                                                                    .padding(.leading, 16)
+                                Image("logoicon")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 150)
+                                    .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
 
-                                                                TextField("What do you want to learn?", text: $topic)
-                                                                    .textFieldStyle(PlainTextFieldStyle())
-                                                                    .font(.system(size: 18, weight: .medium))
-                                                                    .foregroundColor(.white)
-                                                                    .accentColor(.yellow)
-                                                                    .padding(.vertical, 12)
+                                if !units.isEmpty {
+                                    Text("Currently Learning: \(topic)")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding(.vertical, 10)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.black.opacity(0.3))
+                                        .cornerRadius(10)
+                                        .padding(.horizontal)
+                                }
 
-                                                                if !topic.isEmpty {
-                                                                    Button(action: { topic = "" }) {
-                                                                        Image(systemName: "xmark.circle.fill")
-                                                                            .foregroundColor(.white.opacity(0.7))
-                                                                    }
-                                                                    .padding(.trailing, 16)
-                                                                }
-                                                            }
-                                                            .background(Color.white.opacity(0.2))
-                                                            .cornerRadius(25)
-                                                            .overlay(
-                                                                RoundedRectangle(cornerRadius: 25)
-                                                                    .stroke(Color.white.opacity(0.5), lineWidth: 2)
-                                                            )
-                                                            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                                if showSearchBar {
+                                    VStack(spacing: 20) {
+                                        HStack {
+                                            Image(systemName: "lightbulb.fill")
+                                                .foregroundColor(.yellow)
+                                                .font(.system(size: 24))
+                                                .padding(.leading, 16)
 
-                                                            Button(action: {
-                                                                Task {
-                                                                    await generateLesson()
-                                                                }
-                                                            }) {
-                                                                Text("Ignite Learning")
-                                                                    .fontWeight(.bold)
-                                                                    .foregroundColor(.white)
-                                                                    .padding(.vertical, 16)
-                                                                    .padding(.horizontal, 40)
-                                                                    .background(
-                                                                        LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
-                                                                                       startPoint: .leading,
-                                                                                       endPoint: .trailing)
-                                                                    )
-                                                                    .cornerRadius(25)
-                                                                    .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 5)
-                                                            }
-                                                            .disabled(isLoading || topic.isEmpty)
+                                            TextField("What do you want to learn?", text: $topic)
+                                                .textFieldStyle(PlainTextFieldStyle())
+                                                .font(.system(size: 18, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .accentColor(.yellow)
+                                                .padding(.vertical, 12)
 
-                                                            Button(action: { showSearchHistory = true }) {
-                                                                Text("View Search History")
-                                                                    .fontWeight(.semibold)
-                                                                    .foregroundColor(.white)
-                                                                    .padding(.vertical, 12)
-                                                                    .padding(.horizontal, 20)
-                                                                    .background(Color.blue.opacity(0.6))
-                                                                    .cornerRadius(20)
-                                                            }
-                                                            .padding(.top, 10)
-                                                        }
-                                                        .padding(.horizontal, 20)
-                                                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                                                    }
-
-                                                    if isLoading {
-                                                        VStack {
-                                                            Text(loadingMessage)
-                                                                .font(.headline)
-                                                                .foregroundColor(.white)
-                                                                .padding(.bottom, 5)
-
-                                                            GradientLoadingBar(progress: $loadingProgress)
-                                                                .frame(height: 4)
-                                                                .padding(.horizontal)
-                                                        }
-                                                    } else if let errorMessage = errorMessage {
-                                                        Text(errorMessage)
-                                                            .foregroundColor(.red)
-                                                    } else if !units.isEmpty {
-                                                        UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex)
-                                                            .frame(height: 400)  // Increased height for flash cards
-
-                                                        HStack(spacing: 20) {
-                                                            Button(action: resetToMainPage) {
-                                                                Text("Learn Something New")
-                                                                    .fontWeight(.semibold)
-                                                                    .foregroundColor(.white)
-                                                                    .padding(.vertical, 12)
-                                                                    .padding(.horizontal, 20)
-                                                                    .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                                                                               startPoint: .leading,
-                                                                                               endPoint: .trailing))
-                                                                    .cornerRadius(20)
-                                                            }
-
-                                                            Button(action: {
-                                                                Task {
-                                                                    await generateMoreUnits()
-                                                                }
-                                                            }) {
-                                                                Text("Dive Deeper")
-                                                                    .fontWeight(.semibold)
-                                                                    .foregroundColor(.white)
-                                                                    .padding(.vertical, 12)
-                                                                    .padding(.horizontal, 20)
-                                                                    .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
-                                                                                               startPoint: .leading,
-                                                                                               endPoint: .trailing))
-                                                                    .cornerRadius(20)
-                                                            }
-                                                        }
-                                                        .padding(.top, 20)
-                                                    }
-
-                                                    if !debugText.isEmpty {
-                                                        Text(debugText)
-                                                            .font(.caption)
-                                                            .foregroundColor(.white)
-                                                    }
-
-                                                    Spacer()
+                                            if !topic.isEmpty {
+                                                Button(action: { topic = "" }) {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .foregroundColor(.white.opacity(0.7))
                                                 }
-                                            }
-                                            .navigationBarHidden(true)
-                                        }
-                                    }
-                                    .onAppear {
-                                        loadSavedContent()
-                                        loadRecentSearches()
-                                    }
-                                }
-
-                                func learnRandomSkill() {
-                                    topic = randomSkills.randomElement() ?? "How to tie a tie"
-                                    Task {
-                                        await generateLesson()
-                                    }
-                                }
-
-                                func deleteSelectedSearches() {
-                                    for search in searchesToDelete {
-                                        if let index = recentSearches.firstIndex(of: search) {
-                                            recentSearches.remove(at: index)
-                                            savedContent.removeValue(forKey: search)
-                                        }
-                                    }
-                                    saveRecentSearches()
-                                    saveContentToUserDefaults()
-                                    searchesToDelete.removeAll()
-                                }
-
-                                func selectSearch(_ search: String) {
-                                    topic = search
-                                    if let savedUnits = savedContent[search] {
-                                        units = savedUnits
-                                        withAnimation {
-                                            showSearchBar = false
-                                            showSearchHistory = false
-                                        }
-                                    } else {
-                                        Task {
-                                            await generateLesson()
-                                        }
-                                    }
-                                }
-
-                                func updateLoadingMessage() {
-                                    loadingMessage = loadingMessages.randomElement() ?? "Loading..."
-                                }
-
-                                func startLoadingMessageTimer() {
-                                    loadingMessageTimer?.invalidate()
-                                    loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
-                                        withAnimation {
-                                            updateLoadingMessage()
-                                        }
-                                    }
-                                }
-
-                                func stopLoadingMessageTimer() {
-                                    loadingMessageTimer?.invalidate()
-                                    loadingMessageTimer = nil
-                                }
-
-                                func generateLesson() async {
-                                    if isInappropriateContent(topic) {
-                                        DispatchQueue.main.async {
-                                            self.showInappropriateContentWarning = true
-                                            self.isLoading = false
-                                            withAnimation {
-                                                self.showSearchBar = false
+                                                .padding(.trailing, 16)
                                             }
                                         }
-                                        return
-                                    }
+                                        .background(Color.white.opacity(0.2))
+                                        .cornerRadius(25)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 25)
+                                                .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                                        )
+                                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
 
-                                    if let savedUnits = savedContent[topic] {
-                                        DispatchQueue.main.async {
-                                            self.units = savedUnits
-                                            self.isLoading = false
-                                            withAnimation {
-                                                self.showSearchBar = false
+                                        Button(action: {
+                                            Task {
+                                                await generateLesson()
                                             }
+                                        }) {
+                                            Text("Ignite Learning")
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 16)
+                                                .padding(.horizontal, 40)
+                                                .background(
+                                                    LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                                                   startPoint: .leading,
+                                                                   endPoint: .trailing)
+                                                )
+                                                .cornerRadius(25)
+                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 5)
                                         }
-                                        return
+                                        .disabled(isLoading || topic.isEmpty)
+
+                                        Button(action: { showSearchHistory = true }) {
+                                            Text("View Search History")
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 20)
+                                                .background(Color.blue.opacity(0.6))
+                                                .cornerRadius(20)
+                                        }
+                                        .padding(.top, 10)
                                     }
-
-                                    if !recentSearches.contains(topic) {
-                                        recentSearches.insert(topic, at: 0)
-                                        if recentSearches.count > 10 {  // Limit to 10 recent searches
-                                            recentSearches = Array(recentSearches.prefix(10))
-                                        }
-                                        saveRecentSearches()
-                                    }
-
-                                    isLoading = true
-                                    loadingProgress = 0.0
-                                    errorMessage = nil
-                                    debugText = ""
-                                    units.removeAll()
-                                    currentUnitIndex = 0
-                                    currentCardIndex = 0
-                                    updateLoadingMessage()
-                                    startLoadingMessageTimer()
-                                    withAnimation {
-                                        showSearchBar = false
-                                        showSearchHistory = false
-                                    }
-
-                                    let prompt = """
-                                    Create a structured microlearning curriculum for the topic: \(topic).
-                                    Provide exactly 5 main units, each covering a unique aspect of the topic.
-                                    For each unit, provide exactly 3 key points or concepts.
-                                    Format your response as follows:
-
-                                    UNIT: [Unit 1 Title]
-                                    TITLE: [Title for point 1]
-                                    CONTENT: [Explanation for point 1, keep it under 50 words]
-                                    TITLE: [Title for point 2]
-                                    CONTENT: [Explanation for point 2, keep it under 50 words]
-                                    TITLE: [Title for point 3]
-                                    CONTENT: [Explanation for point 3, keep it under 50 words]
-                                    ---
-                                    UNIT: [Unit 2 Title]
-                                    ... (repeat the structure for all 5 units)
-
-                                    Ensure each unit has a clear, distinct focus within the overall topic.
-                                    Do not use any markdown formatting. Use plain text only.
-                                    It is crucial that you provide exactly 5 units, no more and no less.
-                                    """
-
-                                    do {
-                                        let response = try await model.generateContent(prompt)
-                                        if let text = response.text {
-                                            await processGeneratedContent(text)
-                                        }
-
-                                        DispatchQueue.main.async {
-                                            self.loadingProgress = 1.0
-                                            self.isLoading = false
-                                            self.saveCurrentContent()
-                                            self.stopLoadingMessageTimer()
-                                        }
-                                    } catch {
-                                        DispatchQueue.main.async {
-                                            self.errorMessage = "Error: \(error.localizedDescription)"
-                                            self.isLoading = false
-                                            self.stopLoadingMessageTimer()
-                                        }
-                                    }
+                                    .padding(.horizontal, 20)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
                                 }
 
-                                func processGeneratedContent(_ content: String) async {
-                                    let newUnits = content.components(separatedBy: "---").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                                    var processedUnits: [Unit] = []
+                                if isLoading {
+                                    VStack {
+                                        Spacer()
+                                        Text(loadingMessage)
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding(.bottom, 20)
+                                        ScatteredQuantumLoader()
+                                            .frame(width: 200, height: 200)
+                                        Spacer()
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                } else if let errorMessage = errorMessage {
+                                    Text(errorMessage)
+                                        .foregroundColor(.red)
+                                } else if !units.isEmpty {
+                                    UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex)
+                                        .frame(height: 400)  // Increased height for flash cards
 
-                                    for (index, unitContent) in newUnits.enumerated() {
-                                        let lines = unitContent.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .newlines)
-                                        var unitTitle = ""
-                                        var cards: [Card] = []
-                                        var currentTitle = ""
-                                        var currentContent = ""
+                                    HStack(spacing: 20) {
+                                        Button(action: resetToMainPage) {
+                                            Text("Learn Something New")
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 20)
+                                                .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                                           startPoint: .leading,
+                                                                           endPoint: .trailing))
+                                                .cornerRadius(20)
+                                        }
 
-                                        for line in lines {
-                                            if line.starts(with: "UNIT:") {
-                                                unitTitle = line.replacingOccurrences(of: "UNIT:", with: "").trimmingCharacters(in: .whitespaces)
-                                            } else if line.starts(with: "TITLE:") {
-                                                if !currentTitle.isEmpty && !currentContent.isEmpty {
-                                                    let category = ContentCategory.matchCategory(for: currentContent)
-                                                    cards.append(Card(title: currentTitle, content: currentContent, category: category))
-                                                    currentContent = ""
-                                                }
-                                                currentTitle = line.replacingOccurrences(of: "TITLE:", with: "").trimmingCharacters(in: .whitespaces)
-                                            } else if line.starts(with: "CONTENT:") {
-                                                currentContent = line.replacingOccurrences(of: "CONTENT:", with: "").trimmingCharacters(in: .whitespaces)
-                                            } else {
-                                                currentContent += " " + line.trimmingCharacters(in: .whitespaces)
+                                        Button(action: {
+                                            Task {
+                                                await generateMoreUnits()
                                             }
-                                        }
-
-                                        if !currentTitle.isEmpty && !currentContent.isEmpty {
-                                            let category = ContentCategory.matchCategory(for: currentContent)
-                                            cards.append(Card(title: currentTitle, content: currentContent, category: category))
-                                        }
-
-                                        if !unitTitle.isEmpty && cards.count == 3 {
-                                            processedUnits.append(Unit(title: unitTitle, cards: cards))
-                                        }
-
-                                        // Update loading progress
-                                        DispatchQueue.main.async {
-                                            self.loadingProgress = Double(index + 1) / Double(newUnits.count)
+                                        }) {
+                                            Text("Dive Deeper")
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 20)
+                                                .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
+                                                                           startPoint: .leading,
+                                                                           endPoint: .trailing))
+                                                .cornerRadius(20)
                                         }
                                     }
-
-                                    DispatchQueue.main.async {
-                                        if processedUnits.count == 5 {
-                                            self.units = processedUnits
-                                        } else {
-                                            self.errorMessage = "Error: Generated content did not match the expected format."
-                                        }
-                                    }
+                                    .padding(.top, 20)
                                 }
 
-                                func resetToMainPage() {
-                                    withAnimation {
-                                        showSearchBar = true
-                                        units.removeAll()
-                                        topic = ""
-                                        errorMessage = nil
-                                        debugText = ""
-                                        showInappropriateContentWarning = false
-                                    }
+                                if !debugText.isEmpty {
+                                    Text(debugText)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
                                 }
 
-                                func loadRecentSearches() {
-                                    if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
-                                        recentSearches = savedSearches
-                                    }
+                                Spacer()
+                            }
+                        }
+                        .navigationBarHidden(true)
+                    }
+                }
+                .onAppear {
+                    loadSavedContent()
+                    loadRecentSearches()
+                }
+            }
 
-                                    if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
-                                       let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
-                                        savedContent = decodedContent
-                                    }
-                                }
+            func learnRandomSkill() {
+                topic = randomSkills.randomElement() ?? "How to tie a tie"
+                Task {
+                    await generateLesson()
+                }
+            }
 
-                                func saveRecentSearches() {
-                                    UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
-                                }
+            func deleteSelectedSearches() {
+                for search in searchesToDelete {
+                    if let index = recentSearches.firstIndex(of: search) {
+                        recentSearches.remove(at: index)
+                        savedContent.removeValue(forKey: search)
+                    }
+                }
+                saveRecentSearches()
+                saveContentToUserDefaults()
+                searchesToDelete.removeAll()
+            }
 
-                                func saveCurrentContent() {
-                                    savedContent[topic] = units
-                                    saveContentToUserDefaults()
-                                }
+            func selectSearch(_ search: String) {
+                topic = search
+                if let savedUnits = savedContent[search] {
+                    units = savedUnits
+                    withAnimation {
+                        showSearchBar = false
+                        showSearchHistory = false
+                    }
+                } else {
+                    Task {
+                        await generateLesson()
+                    }
+                }
+            }
 
-                                func saveContentToUserDefaults() {
-                                    if let encodedContent = try? JSONEncoder().encode(savedContent) {
-                                        UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
-                                    }
-                                }
+            func updateLoadingMessage() {
+                loadingMessage = loadingMessages.randomElement() ?? "Loading..."
+            }
 
-                                func loadSavedContent() {
-                                    if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
-                                       let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
-                                        savedContent = decodedContent
-                                    }
-                                }
+            func startLoadingMessageTimer() {
+                loadingMessageTimer?.invalidate()
+                loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
+                    withAnimation {
+                        updateLoadingMessage()
+                    }
+                }
+            }
 
-                                func generateMoreUnits() async {
-                                    isLoading = true
-                                    loadingProgress = 0.0
-                                    errorMessage = nil
-                                    updateLoadingMessage()
-                                    startLoadingMessageTimer()
+            func stopLoadingMessageTimer() {
+                loadingMessageTimer?.invalidate()
+                loadingMessageTimer = nil
+            }
 
-                                    let prompt = """
-                                    Create exactly 3 more units for the microlearning curriculum on the topic: \(topic).
-                                    Each new unit should cover a unique aspect of the topic not covered in the previous units.
-                                    For each unit, provide exactly 3 key points or concepts.
-                                    Format your response strictly as follows, with no deviations:
+            func generateLesson() async {
+                if isInappropriateContent(topic) {
+                    DispatchQueue.main.async {
+                        self.showInappropriateContentWarning = true
+                        self.isLoading = false
+                        withAnimation {
+                            self.showSearchBar = false
+                        }
+                    }
+                    return
+                }
 
-                                    UNIT: [New Unit Title]
-                                    TITLE: [Title for point 1]
-                CONTENT: [Explanation for point 1, keep it under 50 words]
-                TITLE: [Title for point 2]
-                CONTENT: [Explanation for point 2, keep it under 50 words]
-                TITLE: [Title for point 3]
-                CONTENT: [Explanation for point 3, keep it under 50 words]
-                ---
-                UNIT: [New Unit Title]
+                if let savedUnits = savedContent[topic] {
+                    DispatchQueue.main.async {
+                        self.units = savedUnits
+                        self.isLoading = false
+                        withAnimation {
+                            self.showSearchBar = false
+                        }
+                    }
+                    return
+                }
+
+                if !recentSearches.contains(topic) {
+                    recentSearches.insert(topic, at: 0)
+                    if recentSearches.count > 10 {  // Limit to 10 recent searches
+                        recentSearches = Array(recentSearches.prefix(10))
+                    }
+                    saveRecentSearches()
+                }
+
+                isLoading = true
+                errorMessage = nil
+                debugText = ""
+                units.removeAll()
+                currentUnitIndex = 0
+                currentCardIndex = 0
+                updateLoadingMessage()
+                startLoadingMessageTimer()
+                withAnimation {
+                    showSearchBar = false
+                    showSearchHistory = false
+                }
+
+                let prompt = """
+                Create a structured microlearning curriculum for the topic: \(topic).
+                Provide exactly 5 main units, each covering a unique aspect of the topic.
+                For each unit, provide exactly 3 key points or concepts.
+                Format your response as follows:
+
+                UNIT: [Unit 1 Title]
                 TITLE: [Title for point 1]
                 CONTENT: [Explanation for point 1, keep it under 50 words]
                 TITLE: [Title for point 2]
@@ -903,27 +798,21 @@ struct ContentView: View {
                 TITLE: [Title for point 3]
                 CONTENT: [Explanation for point 3, keep it under 50 words]
                 ---
-                UNIT: [New Unit Title]
-                TITLE: [Title for point 1]
-                CONTENT: [Explanation for point 1, keep it under 50 words]
-                TITLE: [Title for point 2]
-                CONTENT: [Explanation for point 2, keep it under 50 words]
-                TITLE: [Title for point 3]
-                CONTENT: [Explanation for point 3, keep it under 50 words]
+                UNIT: [Unit 2 Title]
+                ... (repeat the structure for all 5 units)
 
-                Ensure each new unit has a clear, distinct focus within the overall topic.
+                Ensure each unit has a clear, distinct focus within the overall topic.
                 Do not use any markdown formatting. Use plain text only.
-                It is crucial that you provide exactly 3 units, no more and no less, following the exact format above.
+                It is crucial that you provide exactly 5 units, no more and no less.
                 """
 
                 do {
                     let response = try await model.generateContent(prompt)
                     if let text = response.text {
-                        await processAdditionalUnits(text)
+                        await processGeneratedContent(text)
                     }
 
                     DispatchQueue.main.async {
-                        self.loadingProgress = 1.0
                         self.isLoading = false
                         self.saveCurrentContent()
                         self.stopLoadingMessageTimer()
@@ -937,7 +826,7 @@ struct ContentView: View {
                 }
             }
 
-            func processAdditionalUnits(_ content: String) async {
+            func processGeneratedContent(_ content: String) async {
                 let newUnits = content.components(separatedBy: "---").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 var processedUnits: [Unit] = []
 
@@ -973,40 +862,182 @@ struct ContentView: View {
                     if !unitTitle.isEmpty && cards.count == 3 {
                         processedUnits.append(Unit(title: unitTitle, cards: cards))
                     }
-
-                    // Update loading progress
-                    DispatchQueue.main.async {
-                        self.loadingProgress = Double(index + 1) / Double(newUnits.count)
-                    }
                 }
 
                 DispatchQueue.main.async {
-                    if processedUnits.count == 3 {
-                        self.units.append(contentsOf: processedUnits)
+                    if processedUnits.count == 5 {
+                        self.units = processedUnits
                     } else {
                         self.errorMessage = "Error: Generated content did not match the expected format."
                     }
                 }
             }
 
-            func isInappropriateContent(_ content: String) -> Bool {
-                let inappropriateKeywords = ["bomb", "kill", "murder", "terrorist", "suicide", "rape", "molest", "abuse"]
-                let lowercasedContent = content.lowercased()
-                return inappropriateKeywords.contains { lowercasedContent.contains($0) }
+            func resetToMainPage() {
+                withAnimation {
+                    showSearchBar = true
+                    units.removeAll()
+                    topic = ""
+                    errorMessage = nil
+                    debugText = ""
+                    showInappropriateContentWarning = false
+                }
+            }
+
+            func loadRecentSearches() {
+                if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
+                    recentSearches = savedSearches
+                }
+            }
+
+    func saveRecentSearches() {
+            UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
+        }
+
+        func saveCurrentContent() {
+            savedContent[topic] = units
+            saveContentToUserDefaults()
+        }
+
+        func saveContentToUserDefaults() {
+            if let encodedContent = try? JSONEncoder().encode(savedContent) {
+                UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
             }
         }
 
-        @main
-        struct YourAppNameApp: App {
-            var body: some Scene {
-                WindowGroup {
-                    ContentView()
+        func loadSavedContent() {
+            if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
+               let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
+                savedContent = decodedContent
+            }
+        }
+
+        func generateMoreUnits() async {
+            isLoading = true
+            errorMessage = nil
+            updateLoadingMessage()
+            startLoadingMessageTimer()
+
+            let prompt = """
+            Create exactly 3 more units for the microlearning curriculum on the topic: \(topic).
+            Each new unit should cover a unique aspect of the topic not covered in the previous units.
+            For each unit, provide exactly 3 key points or concepts.
+            Format your response strictly as follows, with no deviations:
+
+            UNIT: [New Unit Title]
+            TITLE: [Title for point 1]
+            CONTENT: [Explanation for point 1, keep it under 50 words]
+            TITLE: [Title for point 2]
+            CONTENT: [Explanation for point 2, keep it under 50 words]
+            TITLE: [Title for point 3]
+            CONTENT: [Explanation for point 3, keep it under 50 words]
+            ---
+            UNIT: [New Unit Title]
+            TITLE: [Title for point 1]
+            CONTENT: [Explanation for point 1, keep it under 50 words]
+            TITLE: [Title for point 2]
+            CONTENT: [Explanation for point 2, keep it under 50 words]
+            TITLE: [Title for point 3]
+            CONTENT: [Explanation for point 3, keep it under 50 words]
+            ---
+            UNIT: [New Unit Title]
+            TITLE: [Title for point 1]
+            CONTENT: [Explanation for point 1, keep it under 50 words]
+            TITLE: [Title for point 2]
+            CONTENT: [Explanation for point 2, keep it under 50 words]
+            TITLE: [Title for point 3]
+            CONTENT: [Explanation for point 3, keep it under 50 words]
+
+            Ensure each new unit has a clear, distinct focus within the overall topic.
+            Do not use any markdown formatting. Use plain text only.
+            It is crucial that you provide exactly 3 units, no more and no less, following the exact format above.
+            """
+
+            do {
+                let response = try await model.generateContent(prompt)
+                if let text = response.text {
+                    await processAdditionalUnits(text)
+                }
+
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.saveCurrentContent()
+                    self.stopLoadingMessageTimer()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Error: \(error.localizedDescription)"
+                    self.isLoading = false
+                    self.stopLoadingMessageTimer()
                 }
             }
         }
 
-        struct ContentView_Previews: PreviewProvider {
-            static var previews: some View {
+        func processAdditionalUnits(_ content: String) async {
+            let newUnits = content.components(separatedBy: "---").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            var processedUnits: [Unit] = []
+
+            for (index, unitContent) in newUnits.enumerated() {
+                let lines = unitContent.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .newlines)
+                var unitTitle = ""
+                var cards: [Card] = []
+                var currentTitle = ""
+                var currentContent = ""
+
+                for line in lines {
+                    if line.starts(with: "UNIT:") {
+                        unitTitle = line.replacingOccurrences(of: "UNIT:", with: "").trimmingCharacters(in: .whitespaces)
+                    } else if line.starts(with: "TITLE:") {
+                        if !currentTitle.isEmpty && !currentContent.isEmpty {
+                            let category = ContentCategory.matchCategory(for: currentContent)
+                            cards.append(Card(title: currentTitle, content: currentContent, category: category))
+                            currentContent = ""
+                        }
+                        currentTitle = line.replacingOccurrences(of: "TITLE:", with: "").trimmingCharacters(in: .whitespaces)
+                    } else if line.starts(with: "CONTENT:") {
+                        currentContent = line.replacingOccurrences(of: "CONTENT:", with: "").trimmingCharacters(in: .whitespaces)
+                    } else {
+                        currentContent += " " + line.trimmingCharacters(in: .whitespaces)
+                    }
+                }
+
+                if !currentTitle.isEmpty && !currentContent.isEmpty {
+                    let category = ContentCategory.matchCategory(for: currentContent)
+                    cards.append(Card(title: currentTitle, content: currentContent, category: category))
+                }
+
+                if !unitTitle.isEmpty && cards.count == 3 {
+                    processedUnits.append(Unit(title: unitTitle, cards: cards))
+                }
+            }
+
+            DispatchQueue.main.async {
+                if processedUnits.count == 3 {
+                    self.units.append(contentsOf: processedUnits)
+                } else {
+                    self.errorMessage = "Error: Generated content did not match the expected format."
+                }
+            }
+        }
+
+        func isInappropriateContent(_ content: String) -> Bool {
+            let inappropriateKeywords = ["bomb", "murder", "terrorist", "suicide", "rape", "molest", "abuse", "nigger", "nigga", "chink", "beaner", "spix", "jap", "fag", "faggot"]
+            let lowercasedContent = content.lowercased()
+            return inappropriateKeywords.contains { lowercasedContent.contains($0) }
+        }
+    }
+
+    @main
+    struct YourAppNameApp: App {
+        var body: some Scene {
+            WindowGroup {
                 ContentView()
             }
         }
+    }
+
+    struct ContentView_Previews: PreviewProvider {
+        static var previews: some View {
+            ContentView()
+        }
+    }
