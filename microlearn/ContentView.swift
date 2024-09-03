@@ -122,7 +122,11 @@ extension String {
 struct TableOfContentsView: View {
     let units: [Unit]
     @Binding var currentUnitIndex: Int
+    @Binding var showTableOfContents: Bool
     let onUnitSelected: (Int) -> Void
+    
+    @State private var scrollOffset: CGFloat = 0
+    @State private var contentHeight: CGFloat = 0
     
     var body: some View {
         VStack {
@@ -131,29 +135,113 @@ struct TableOfContentsView: View {
                 .foregroundColor(.white)
                 .padding()
             
-            ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 10) {
-                    ForEach(Array(units.enumerated()), id: \.element.id) { index, unit in
-                        Button(action: {
-                            onUnitSelected(index)
-                        }) {
-                            HStack {
-                                Text("Unit \(index + 1)")
-                                    .fontWeight(.bold)
-                                Spacer()
-                                Text(unit.title)
+            GeometryReader { geometry in
+                ZStack(alignment: .trailing) {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 10) {
+                            ForEach(Array(units.enumerated()), id: \.element.id) { index, unit in
+                                Button(action: {
+                                    onUnitSelected(index)
+                                }) {
+                                    HStack {
+                                        Text("Unit \(index + 1)")
+                                            .fontWeight(.bold)
+                                        Spacer()
+                                        Text(unit.title)
+                                    }
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                                }
+                                .foregroundColor(.white)
                             }
-                            .padding()
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(10)
                         }
-                        .foregroundColor(.white)
+                        .padding()
+                        .background(GeometryReader { contentGeometry in
+                            Color.clear.preference(key: ContentHeightPreferenceKey.self, value: contentGeometry.size.height)
+                        })
                     }
+                    .onChange(of: contentHeight) { _ in
+                        withAnimation {
+                            scrollOffset = min(max(0, scrollOffset), contentHeight - geometry.size.height)
+                        }
+                    }
+                    .onPreferenceChange(ContentHeightPreferenceKey.self) { height in
+                        contentHeight = height
+                    }
+                    
+                    // Custom Scroll Bar
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 4)
+                        .padding(.trailing, 2)
+                    
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(width: 4, height: scrollBarHeight(in: geometry))
+                        .offset(y: scrollBarOffset(in: geometry))
+                        .padding(.trailing, 2)
                 }
-                .padding()
             }
+            .background(Color.black.opacity(0.2))
+            
+            Spacer()
+            
+            HStack {
+                VStack {
+                    Button(action: {
+                        currentUnitIndex = units.count - 1
+                        showTableOfContents = false
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
+                    Text("Last Unit")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                VStack {
+                    Button(action: {
+                        currentUnitIndex = (currentUnitIndex + 1) % units.count
+                        showTableOfContents = false
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
+                    Text("First Unit")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding()
         }
         .background(Color.black.opacity(0.8))
+    }
+    
+    private func scrollBarHeight(in geometry: GeometryProxy) -> CGFloat {
+        let visibleRatio = geometry.size.height / contentHeight
+        return max(geometry.size.height * visibleRatio, 30)
+    }
+    
+    private func scrollBarOffset(in geometry: GeometryProxy) -> CGFloat {
+        let scrollRatio = scrollOffset / (contentHeight - geometry.size.height)
+        return scrollRatio * (geometry.size.height - scrollBarHeight(in: geometry))
+    }
+}
+
+struct ContentHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -386,7 +474,7 @@ struct UnitView: View {
                 .background(LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.green.opacity(0.1)]),
                                            startPoint: .leading,
                                            endPoint: .trailing))
-                .cornerRadius(10)
+                .cornerRadius(0)
                 .padding(.horizontal)
 
             CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex) {
@@ -627,14 +715,21 @@ struct UnitView: View {
                                                 .padding(.horizontal)
 
                                             if showTableOfContents {
-                                                TableOfContentsView(units: units, currentUnitIndex: $currentUnitIndex) { selectedIndex in
+                                                TableOfContentsView(
+                                                    units: units,
+                                                    currentUnitIndex: $currentUnitIndex,
+                                                    showTableOfContents: $showTableOfContents
+                                                ) { selectedIndex in
                                                     currentUnitIndex = selectedIndex
-                                                    currentCardIndex = 0
                                                     showTableOfContents = false
                                                 }
                                             } else {
-                                                UnitView(units: units, currentUnitIndex: $currentUnitIndex, currentCardIndex: $currentCardIndex, showTableOfContents: $showTableOfContents)
-                                                    .frame(height: 400)
+                                                UnitView(
+                                                    units: units,
+                                                    currentUnitIndex: $currentUnitIndex,
+                                                    currentCardIndex: $currentCardIndex,
+                                                    showTableOfContents: $showTableOfContents
+                                                ).frame(height: 400)
                                             
 
                                                 HStack(spacing: 20) {
