@@ -467,12 +467,12 @@ struct ContentView: View {
         "How to do a French braid",
         "How to beatbox",
         "How to coin roll"
-    ]
+            ]
 
-    @State private var loadingMessageTimer: Timer?
+            @State private var loadingMessageTimer: Timer?
 
-    var body: some View {
-        NavigationView {
+            var body: some View {
+                NavigationView {
                     ZStack {
                         Group {
                             if showInappropriateContentWarning {
@@ -554,6 +554,8 @@ struct ContentView: View {
                                 }
 
                                 if showSearchBar {
+                                    Spacer()
+                                    
                                     VStack(spacing: 20) {
                                         HStack {
                                             Image(systemName: "lightbulb.fill")
@@ -603,20 +605,22 @@ struct ContentView: View {
                                                 .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 5)
                                         }
                                         .disabled(isLoading || topic.isEmpty)
-
-                                        Button(action: { showSearchHistory = true }) {
-                                            Text("View Search History")
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.white)
-                                                .padding(.vertical, 12)
-                                                .padding(.horizontal, 20)
-                                                .background(Color.blue.opacity(0.6))
-                                                .cornerRadius(20)
-                                        }
-                                        .padding(.top, 10)
                                     }
                                     .padding(.horizontal, 20)
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                                    
+                                    Spacer()
+
+                                    Button(action: { showSearchHistory = true }) {
+                                        Text("View Search History")
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 20)
+                                            .background(Color.blue.opacity(0.6))
+                                            .cornerRadius(20)
+                                    }
+                                    .padding(.bottom, -200)
                                 }
 
                                 if isLoading {
@@ -884,13 +888,13 @@ struct ContentView: View {
                 }
             }
 
-            func loadRecentSearches() {
-                if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
-                    recentSearches = savedSearches
-                }
+    func loadRecentSearches() {
+            if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
+                recentSearches = savedSearches
             }
+        }
 
-    func saveRecentSearches() {
+        func saveRecentSearches() {
             UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
         }
 
