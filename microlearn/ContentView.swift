@@ -127,33 +127,49 @@ struct TableOfContentsView: View {
     
     @State private var scrollOffset: CGFloat = 0
     @State private var contentHeight: CGFloat = 0
+    @State private var pressedIndex: Int? = nil
     
     var body: some View {
-        VStack {
-            Text("Table of Contents")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding()
+        VStack(spacing: 0) {
+            HStack {
+                Text("Table of Contents")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Button(action: { showTableOfContents = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white)
+                        .font(.title2)
+                }
+            }
+            .padding()
+            .background(LinearGradient(gradient: Gradient(colors: [Color.green, Color.blue]),
+                                       startPoint: .leading,
+                                       endPoint: .trailing))
             
             GeometryReader { geometry in
                 ZStack(alignment: .trailing) {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 10) {
                             ForEach(Array(units.enumerated()), id: \.element.id) { index, unit in
-                                Button(action: {
+                                UnitButton(unit: unit, index: index, isSelected: currentUnitIndex == index, isPressed: pressedIndex == index) {
                                     onUnitSelected(index)
-                                }) {
-                                    HStack {
-                                        Text("Unit \(index + 1)")
-                                            .fontWeight(.bold)
-                                        Spacer()
-                                        Text(unit.title)
-                                    }
-                                    .padding()
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(10)
                                 }
-                                .foregroundColor(.white)
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { _ in
+                                            withAnimation(.easeInOut(duration: 0.1)) {
+                                                pressedIndex = index
+                                            }
+                                        }
+                                        .onEnded { _ in
+                                            withAnimation(.easeInOut(duration: 0.1)) {
+                                                pressedIndex = nil
+                                            }
+                                            onUnitSelected(index)
+                                        }
+                                )
                             }
                         }
                         .padding()
@@ -177,54 +193,38 @@ struct TableOfContentsView: View {
                         .padding(.trailing, 2)
                     
                     Rectangle()
-                        .fill(Color.white)
+                        .fill(Color.blue)
                         .frame(width: 4, height: scrollBarHeight(in: geometry))
                         .offset(y: scrollBarOffset(in: geometry))
                         .padding(.trailing, 2)
                 }
             }
-            .background(Color.black.opacity(0.2))
-            
-            Spacer()
             
             HStack {
-                VStack {
-                    Button(action: {
-                        currentUnitIndex = 0
-                        showTableOfContents = false
-                    }) {
+                Button(action: { onUnitSelected(0) }) {
+                    HStack {
                         Image(systemName: "chevron.left")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(10)
+                        Text("Last Unit")
                     }
-                    Text("First Unit")
-                        .font(.caption)
-                        .foregroundColor(.white)
+                    .foregroundColor(.blue)
                 }
                 
                 Spacer()
                 
-                VStack {
-                    Button(action: {
-                        currentUnitIndex = units.count - 1
-                        showTableOfContents = false
-                    }) {
+                Button(action: { onUnitSelected(units.count - 1) }) {
+                    HStack {
+                        Text("First Unit")
                         Image(systemName: "chevron.right")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(10)
                     }
-                    Text("Last Unit")
-                        .font(.caption)
-                        .foregroundColor(.white)
+                    .foregroundColor(.blue)
                 }
             }
             .padding()
+            .background(Color.gray.opacity(0.1))
         }
-        .background(Color.black.opacity(0.8))
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(radius: 10)
     }
     
     private func scrollBarHeight(in geometry: GeometryProxy) -> CGFloat {
@@ -235,6 +235,44 @@ struct TableOfContentsView: View {
     private func scrollBarOffset(in geometry: GeometryProxy) -> CGFloat {
         let scrollRatio = scrollOffset / (contentHeight - geometry.size.height)
         return scrollRatio * (geometry.size.height - scrollBarHeight(in: geometry))
+    }
+}
+
+struct UnitButton: View {
+    let unit: Unit
+    let index: Int
+    let isSelected: Bool
+    let isPressed: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text("Unit \(index + 1)")
+                    .fontWeight(.medium)
+                Spacer()
+                Text(unit.title)
+                    .lineLimit(1)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                Group {
+                    if isSelected {
+                        Color.blue.opacity(0.1)
+                    } else if isPressed {
+                        Color.gray.opacity(0.3)
+                    } else {
+                        Color.gray.opacity(0.1)
+                    }
+                }
+            )
+            .foregroundColor(isSelected ? .blue : .primary)
+            .cornerRadius(10)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
     }
 }
 
