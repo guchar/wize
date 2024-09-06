@@ -744,18 +744,23 @@ struct CardView: View {
                                             )
                                         } else {
                                             Button(action: learnRandomSkill) {
-                                                Text("Learn a Random Skill")
-                                                    .fontWeight(.semibold)
-                                                    .foregroundColor(.white)
-                                                    .padding(.vertical, 12)
-                                                    .padding(.horizontal, 20)
-                                                    .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
-                                                                               startPoint: .leading,
-                                                                               endPoint: .trailing))
-                                                    .cornerRadius(20)
+                                                HStack {
+                                                    Image(systemName: "dice")
+                                                        .font(.system(size: 20))
+                                                    Text("Learn a Random Skill")
+                                                        .fontWeight(.semibold)
+                                                }
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 20)
+                                                .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
+                                                                           startPoint: .leading,
+                                                                           endPoint: .trailing))
+                                                .cornerRadius(20)
+                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
                                             }
                                             .padding(.top, 40)
-
+                                            
                                             FireLogoView(streak: streak)
                                                 .padding(.vertical, 20)
 
@@ -795,31 +800,40 @@ struct CardView: View {
 
                                                     HStack(spacing: 20) {
                                                         Button(action: resetToMainPage) {
-                                                            Text("Learn Something New")
-                                                                .fontWeight(.semibold)
-                                                                .foregroundColor(.white)
-                                                                .padding(.vertical, 12)
-                                                                .padding(.horizontal, 20)
-                                                                .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                                                                           startPoint: .leading,
-                                                                                           endPoint: .trailing))
-                                                                .cornerRadius(20)
+                                                            HStack {
+                                                                Image(systemName: "plus.circle")
+                                                                Text("New Topic")
+                                                                    .fontWeight(.semibold)
+                                                            }
+                                                            .foregroundColor(.white)
+                                                            .padding(.vertical, 12)
+                                                            .padding(.horizontal, 20)
+                                                            .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                                                       startPoint: .leading,
+                                                                                       endPoint: .trailing))
+                                                            .cornerRadius(20)
+                                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
                                                         }
+
 
                                                         Button(action: {
                                                             Task {
                                                                 await generateMoreUnits()
                                                             }
                                                         }) {
-                                                            Text("Dive Deeper")
-                                                                .fontWeight(.semibold)
-                                                                .foregroundColor(.white)
-                                                                .padding(.vertical, 12)
-                                                                .padding(.horizontal, 20)
-                                                                .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
-                                                                                           startPoint: .leading,
-                                                                                           endPoint: .trailing))
-                                                                .cornerRadius(20)
+                                                            HStack {
+                                                                Image(systemName: "arrow.down.circle")
+                                                                Text("Dive Deeper")
+                                                                    .fontWeight(.semibold)
+                                                            }
+                                                            .foregroundColor(.white)
+                                                            .padding(.vertical, 12)
+                                                            .padding(.horizontal, 20)
+                                                            .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
+                                                                                       startPoint: .leading,
+                                                                                       endPoint: .trailing))
+                                                            .cornerRadius(20)
+                                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
                                                         }
                                                     }
                                                     .padding(.top, 20)
@@ -835,14 +849,14 @@ struct CardView: View {
                                                             .foregroundColor(.yellow)
                                                             .font(.system(size: 24))
                                                             .padding(.leading, 16)
-
+                                                        
                                                         TextField("What do you want to learn?", text: $topic)
                                                             .textFieldStyle(PlainTextFieldStyle())
                                                             .font(.system(size: 18, weight: .medium))
                                                             .foregroundColor(.white)
                                                             .accentColor(.yellow)
                                                             .padding(.vertical, 12)
-
+                                                        
                                                         if !topic.isEmpty {
                                                             Button(action: { topic = "" }) {
                                                                 Image(systemName: "xmark.circle.fill")
@@ -858,24 +872,25 @@ struct CardView: View {
                                                             .stroke(Color.white.opacity(0.5), lineWidth: 2)
                                                     )
                                                     .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-
+                                                    
                                                     Button(action: {
                                                         Task {
                                                             await generateLesson()
                                                         }
                                                     }) {
-                                                        Text("Ignite Learning")
-                                                            .fontWeight(.bold)
-                                                            .foregroundColor(.white)
-                                                            .padding(.vertical, 16)
-                                                            .padding(.horizontal, 40)
-                                                            .background(
-                                                                LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
-                                                                               startPoint: .leading,
-                                                                               endPoint: .trailing)
-                                                            )
-                                                            .cornerRadius(25)
-                                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 5)
+                                                        HStack {
+                                                            Image(systemName: "flame")
+                                                            Text("Ignite Learning")
+                                                                .fontWeight(.bold)
+                                                        }
+                                                        .foregroundColor(.white)
+                                                        .padding(.vertical, 16)
+                                                        .padding(.horizontal, 40)
+                                                        .background(LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                                                                   startPoint: .leading,
+                                                                                   endPoint: .trailing))
+                                                        .cornerRadius(25)
+                                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
                                                     }
                                                     .disabled(isLoading || topic.isEmpty)
                                                 }
@@ -883,18 +898,23 @@ struct CardView: View {
                                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                                                 
                                                 Spacer()
-
-                                                                            Button(action: { showSearchHistory = true }) {
-                                                                                Text("View Search History")
-                                                                                    .fontWeight(.semibold)
-                                                                                    .foregroundColor(.white)
-                                                                                    .padding(.vertical, 12)
-                                                                                    .padding(.horizontal, 20)
-                                                                                    .background(Color.blue.opacity(0.6))
-                                                                                    .cornerRadius(20)
-                                                                            }
-                                                                            .padding(.bottom, 20)
-                                                                        }
+                                                
+                                                Button(action: { showSearchHistory = true }) {
+                                                    HStack {
+                                                        Image(systemName: "clock.arrow.circlepath")
+                                                        Text("View Search History")
+                                                            .fontWeight(.semibold)
+                                                    }
+                                                    .foregroundColor(.white)
+                                                    .padding(.vertical, 12)
+                                                    .padding(.horizontal, 20)
+                                                    .background(Color.blue.opacity(0.6))
+                                                    .cornerRadius(20)
+                                                    .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                }
+                                                .padding(.bottom, 20)
+                                                
+                                            }
 
                                                                         if !debugText.isEmpty {
                                                                             Text(debugText)
@@ -1168,17 +1188,20 @@ struct CardView: View {
                                                     }
                                                 }
 
-                                                @main
-                                                struct YourAppNameApp: App {
-                                                    var body: some Scene {
-                                                        WindowGroup {
-                                                            ContentView()
-                                                        }
-                                                    }
-                                                }
+@main
 
-                                                struct ContentView_Previews: PreviewProvider {
-                                                    static var previews: some View {
-                                                        ContentView()
-                                                    }
-                                                }
+struct YourAppNameApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+    
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+    
+}
