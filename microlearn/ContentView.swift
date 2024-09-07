@@ -1031,25 +1031,56 @@ struct CardView: View {
                                                             }
 
                                                             let prompt = """
-                                                            Create a structured microlearning curriculum for the topic: \(topic).
+                                                            Create a structured, formal microlearning curriculum for the topic: \(topic).
                                                             Provide exactly 5 main units, each covering a unique aspect of the topic.
                                                             For each unit, provide exactly 3 key points or concepts.
+                                                            Use formal language and ensure proper capitalization of all names, places, historical terms, and proper nouns.
                                                             Format your response as follows:
 
-                                                            UNIT: [Unit 1 Title]
-                                                            TITLE: [Title for point 1]
-                                                            CONTENT: [Explanation for point 1, keep it under 50 words]
-                                                            TITLE: [Title for point 2]
-                                                            CONTENT: [Explanation for point 2, keep it under 50 words]
-                                                            TITLE: [Title for point 3]
-                                                            CONTENT: [Explanation for point 3, keep it under 50 words]
+                                                            UNIT: [Unit 1 Title (properly capitalized)]
+                                                            TITLE: [Title for point 1 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 2 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 3 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
                                                             ---
-                                                            UNIT: [Unit 2 Title]
-                                                            ... (repeat the structure for all 5 units)
+                                                            UNIT: [Unit 2 Title (properly capitalized)]
+                                                            TITLE: [Title for point 1 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 2 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 3 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                            ---
+                                                            UNIT: [Unit 3 Title (properly capitalized)]
+                                                            TITLE: [Title for point 1 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 2 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 3 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                            ---
+                                                            UNIT: [Unit 4 Title (properly capitalized)]
+                                                            TITLE: [Title for point 1 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 2 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 3 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                            ---
+                                                            UNIT: [Unit 5 Title (properly capitalized)]
+                                                            TITLE: [Title for point 1 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 2 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                            TITLE: [Title for point 3 (properly capitalized)]
+                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
 
                                                             Ensure each unit has a clear, distinct focus within the overall topic.
-                                                            Do not use any markdown formatting. Use plain text only.
+                                                            Use formal language and proper capitalization throughout, especially for names, places, and historical terms.
                                                             It is crucial that you provide exactly 5 units, no more and no less.
+                                                            Do not use any markdown formatting. Use plain text only.
                                                             """
 
                                                             do {
@@ -1080,33 +1111,51 @@ struct CardView: View {
                                                             }
                                                         }
 
-                                                        func processGeneratedContent(_ content: String) async {
-                                                            let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
-                                                            var newUnits: [Unit] = []
+                        func processGeneratedContent(_ content: String) async {
+                            let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
+                            var newUnits: [Unit] = []
 
-                                                            for section in unitSections {
-                                                                let lines = section.split(separator: "\n")
-                                                                if lines.count >= 7 {
-                                                                    let unitTitle = String(lines[0].dropFirst(6))
-                                                                    var cards: [Card] = []
+                            for section in unitSections {
+                                let lines = section.split(separator: "\n", omittingEmptySubsequences: true)
+                                if lines.count >= 7 {
+                                    var unitTitle = String(lines[0].dropFirst(6))
+                                    unitTitle = unitTitle.trimmingCharacters(in: .punctuationCharacters)
+                                    
+                                    var cards: [Card] = []
 
-                                                                    for i in stride(from: 1, to: lines.count, by: 3) {
-                                                                        if i + 2 < lines.count {
-                                                                            let title = String(lines[i].dropFirst(7))
-                                                                            let content = String(lines[i + 1].dropFirst(9))
-                                                                            let category = ContentCategory.matchCategory(for: content)
-                                                                            cards.append(Card(title: title, content: content, category: category))
-                                                                        }
-                                                                    }
+                                    for i in stride(from: 1, to: lines.count, by: 2) {
+                                        if i + 1 < lines.count {
+                                            let title = String(lines[i].dropFirst(7)).trimmingCharacters(in: .whitespaces)
+                                            var content = String(lines[i + 1].dropFirst(9)).trimmingCharacters(in: .whitespaces)
+                                            
+                                            // Ensure content is a complete sentence with proper capitalization
+                                            if !content.isEmpty {
+                                                content = content.lowercased()
+                                                content = content.prefix(1).uppercased() + content.dropFirst()
+                                                if !content.hasSuffix(".") && !content.hasSuffix("!") && !content.hasSuffix("?") {
+                                                    content += "."
+                                                }
+                                            }
+                                            
+                                            let category = ContentCategory.matchCategory(for: content)
+                                            cards.append(Card(title: title, content: content, category: category))
+                                        }
+                                    }
 
-                                                                    newUnits.append(Unit(title: unitTitle, cards: cards))
-                                                                }
-                                                            }
+                                    // Ensure we have exactly 3 cards per unit
+                                    while cards.count < 3 {
+                                        cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
+                                    }
+                                    cards = Array(cards.prefix(3))
 
-                                                            DispatchQueue.main.async {
-                                                                self.units = newUnits
-                                                            }
-                                                        }
+                                    newUnits.append(Unit(title: unitTitle, cards: cards))
+                                }
+                            }
+
+                            DispatchQueue.main.async {
+                                self.units = newUnits
+                            }
+                        }
 
                                                         func resetToMainPage() {
                                                             withAnimation {
