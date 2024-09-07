@@ -620,6 +620,7 @@ struct CardView: View {
 
                     struct FireLogoView: View {
                         let streak: Int
+                        let size: CGFloat
                         
                         var body: some View {
                             ZStack {
@@ -627,10 +628,10 @@ struct CardView: View {
                                     .resizable()
                                     .scaledToFit()
                                     .foregroundColor(.orange)
-                                    .frame(width: 100, height: 100)
+                                    .frame(width: size, height: size)
                                 
                                 Text("\(streak)")
-                                    .font(.system(size: 40, weight: .bold))
+                                    .font(.system(size: size * 0.4, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
@@ -761,14 +762,17 @@ struct CardView: View {
                                             }
                                             .padding(.top, 40)
                                             
-                                            FireLogoView(streak: streak)
-                                                .padding(.vertical, 20)
-
-                                            Image("logoicon")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(height: 75)
-                                                .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
+                                            HStack(spacing: 10) {
+                                                FireLogoView(streak: streak, size: units.isEmpty ? 80 : 40)
+                                                    .animation(.easeInOut)
+                                                
+                                                Image("logoicon")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(height: units.isEmpty ? 65 : 40)
+                                                    .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
+                                            }
+                                            .padding(.vertical, 10)
 
                                             if !units.isEmpty {
                                                 Text("Currently Learning: \(topic)")
@@ -795,7 +799,7 @@ struct CardView: View {
                                                         currentUnitIndex: $currentUnitIndex,
                                                         currentCardIndex: $currentCardIndex,
                                                         showTableOfContents: $showTableOfContents
-                                                    ).frame(height: 400)
+                                                    ).frame(height: 450)  // Increased height for bigger index card
                                                 
 
                                                     HStack(spacing: 20) {
@@ -872,336 +876,413 @@ struct CardView: View {
                                                             .stroke(Color.white.opacity(0.5), lineWidth: 2)
                                                     )
                                                     .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                                                    
                                                     Button(action: {
-                                                        Task {
-                                                            await generateLesson()
-                                                        }
-                                                    }) {
-                                                        HStack {
-                                                            Image(systemName: "flame")
-                                                            Text("Ignite Learning")
-                                                                .fontWeight(.bold)
-                                                        }
-                                                        .foregroundColor(.white)
-                                                        .padding(.vertical, 16)
-                                                        .padding(.horizontal, 40)
-                                                        .background(LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
-                                                                                   startPoint: .leading,
-                                                                                   endPoint: .trailing))
-                                                        .cornerRadius(25)
-                                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-                                                    }
-                                                    .disabled(isLoading || topic.isEmpty)
-                                                }
-                                                .padding(.horizontal, 20)
-                                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                                                
-                                                Spacer()
-                                                
-                                                Button(action: { showSearchHistory = true }) {
-                                                    HStack {
-                                                        Image(systemName: "clock.arrow.circlepath")
-                                                        Text("View Search History")
-                                                            .fontWeight(.semibold)
-                                                    }
-                                                    .foregroundColor(.white)
-                                                    .padding(.vertical, 12)
-                                                    .padding(.horizontal, 20)
-                                                    .background(Color.blue.opacity(0.6))
-                                                    .cornerRadius(20)
-                                                    .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-                                                }
-                                                .padding(.bottom, 20)
-                                                
-                                            }
+                                                                                        Task {
+                                                                                            await generateLesson()
+                                                                                        }
+                                                                                    }) {
+                                                                                        HStack {
+                                                                                            Image(systemName: "flame")
+                                                                                            Text("Ignite Learning")
+                                                                                                .fontWeight(.bold)
+                                                                                        }
+                                                                                        .foregroundColor(.white)
+                                                                                        .padding(.vertical, 16)
+                                                                                        .padding(.horizontal, 40)
+                                                                                        .background(LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                                                                                                   startPoint: .leading,
+                                                                                                                   endPoint: .trailing))
+                                                                                        .cornerRadius(25)
+                                                                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                                    }
+                                                                                    .disabled(isLoading || topic.isEmpty)
+                                                                                }
+                                                                                .padding(.horizontal, 20)
+                                                                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                                                                
+                                                                                Spacer()
+                                                                                
+                                                                                Button(action: { showSearchHistory = true }) {
+                                                                                    HStack {
+                                                                                        Image(systemName: "clock.arrow.circlepath")
+                                                                                        Text("View Search History")
+                                                                                            .fontWeight(.semibold)
+                                                                                    }
+                                                                                    .foregroundColor(.white)
+                                                                                    .padding(.vertical, 12)
+                                                                                    .padding(.horizontal, 20)
+                                                                                    .background(Color.blue.opacity(0.6))
+                                                                                    .cornerRadius(20)
+                                                                                    .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                                }
+                                                                                .padding(.bottom, 20)
+                                                                                
+                                                                            }
 
-                                                                        if !debugText.isEmpty {
-                                                                            Text(debugText)
-                                                                                .font(.caption)
-                                                                                .foregroundColor(.white)
+                                                                            if !debugText.isEmpty {
+                                                                                Text(debugText)
+                                                                                    .font(.caption)
+                                                                                    .foregroundColor(.white)
+                                                                            }
+
+                                                                            Spacer()
                                                                         }
+                                                                    }
+                                                                    .navigationBarHidden(true)
 
-                                                                        Spacer()
+                                                                    if showLoadingOverlay {
+                                                                        LoadingOverlay(loadingMessage: $loadingMessage)
                                                                     }
                                                                 }
-                                                                .navigationBarHidden(true)
-
-                                                                if showLoadingOverlay {
-                                                                    LoadingOverlay(loadingMessage: $loadingMessage)
-                                                                }
+                                                            }
+                                                            .onAppear {
+                                                                loadSavedContent()
+                                                                loadRecentSearches()
+                                                                loadStreak()
+                                                                updateStreak()
                                                             }
                                                         }
-                                                        .onAppear {
-                                                            loadSavedContent()
-                                                            loadRecentSearches()
-                                                            loadStreak()
-                                                            updateStreak()
-                                                        }
-                                                    }
 
-                                                    func learnRandomSkill() {
-                                                        topic = randomSkills.randomElement() ?? "How to tie a tie"
-                                                        Task {
-                                                            await generateLesson()
-                                                        }
-                                                    }
-
-                                                    func deleteSelectedSearches() {
-                                                        for search in searchesToDelete {
-                                                            if let index = recentSearches.firstIndex(of: search) {
-                                                                recentSearches.remove(at: index)
-                                                                savedContent.removeValue(forKey: search)
-                                                            }
-                                                        }
-                                                        saveRecentSearches()
-                                                        saveContentToUserDefaults()
-                                                        searchesToDelete.removeAll()
-                                                    }
-
-                                                    func selectSearch(_ search: String) {
-                                                        topic = search
-                                                        if let savedUnits = savedContent[search] {
-                                                            units = savedUnits
-                                                            withAnimation {
-                                                                showSearchBar = false
-                                                                showSearchHistory = false
-                                                            }
-                                                        } else {
+                                                        func learnRandomSkill() {
+                                                            topic = randomSkills.randomElement() ?? "How to tie a tie"
                                                             Task {
                                                                 await generateLesson()
                                                             }
                                                         }
-                                                    }
 
-                                                    func updateLoadingMessage() {
-                                                        loadingMessage = loadingMessages.randomElement() ?? "Loading..."
-                                                    }
-
-                                                    func startLoadingMessageTimer() {
-                                                        loadingMessageTimer?.invalidate()
-                                                        loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-                                                            withAnimation {
-                                                                updateLoadingMessage()
-                                                            }
-                                                        }
-                                                    }
-
-                                                    func stopLoadingMessageTimer() {
-                                                        loadingMessageTimer?.invalidate()
-                                                        loadingMessageTimer = nil
-                                                    }
-
-                                                    func generateLesson() async {
-                                                        if let savedUnits = savedContent[topic] {
-                                                            DispatchQueue.main.async {
-                                                                self.units = savedUnits
-                                                                self.isLoading = false
-                                                                withAnimation {
-                                                                    self.showSearchBar = false
-                                                                    self.showTableOfContents = true
+                                                        func deleteSelectedSearches() {
+                                                            for search in searchesToDelete {
+                                                                if let index = recentSearches.firstIndex(of: search) {
+                                                                    recentSearches.remove(at: index)
+                                                                    savedContent.removeValue(forKey: search)
                                                                 }
-                                                            }
-                                                            return
-                                                        }
-
-                                                        if !recentSearches.contains(topic) {
-                                                            recentSearches.insert(topic, at: 0)
-                                                            if recentSearches.count > 10 {  // Limit to 10 recent searches
-                                                                recentSearches = Array(recentSearches.prefix(10))
                                                             }
                                                             saveRecentSearches()
+                                                            saveContentToUserDefaults()
+                                                            searchesToDelete.removeAll()
                                                         }
 
-                                                        isLoading = true
-                                                        errorMessage = nil
-                                                        debugText = ""
-                                                        units.removeAll()
-                                                        currentUnitIndex = 0
-                                                        currentCardIndex = 0
-                                                        updateLoadingMessage()
-                                                        startLoadingMessageTimer()
-                                                        withAnimation {
-                                                            showSearchBar = false
-                                                            showSearchHistory = false
-                                                            showLoadingOverlay = true
-                                                        }
-
-                                                        let prompt = """
-                                                        Create a structured microlearning curriculum for the topic: \(topic).
-                                                        Provide exactly 5 main units, each covering a unique aspect of the topic.
-                                                        For each unit, provide exactly 3 key points or concepts.
-                                                        Format your response as follows:
-
-                                                        UNIT: [Unit 1 Title]
-                                                        TITLE: [Title for point 1]
-                                                        CONTENT: [Explanation for point 1, keep it under 50 words]
-                                                        TITLE: [Title for point 2]
-                                                        CONTENT: [Explanation for point 2, keep it under 50 words]
-                                                        TITLE: [Title for point 3]
-                                                        CONTENT: [Explanation for point 3, keep it under 50 words]
-                                                        ---
-                                                        UNIT: [Unit 2 Title]
-                                                        ... (repeat the structure for all 5 units)
-
-                                                        Ensure each unit has a clear, distinct focus within the overall topic.
-                                                        Do not use any markdown formatting. Use plain text only.
-                                                        It is crucial that you provide exactly 5 units, no more and no less.
-                                                        """
-
-                                                        do {
-                                                            let response = try await model.generateContent(prompt)
-                                                            if let text = response.text {
-                                                                await processGeneratedContent(text)
-                                                            }
-
-                                                            DispatchQueue.main.async {
-                                                                self.isLoading = false
-                                                                self.saveCurrentContent()
-                                                                self.stopLoadingMessageTimer()
+                                                        func selectSearch(_ search: String) {
+                                                            topic = search
+                                                            if let savedUnits = savedContent[search] {
+                                                                units = savedUnits
                                                                 withAnimation {
-                                                                    self.showLoadingOverlay = false
-                                                                    self.showTableOfContents = false  // Don't show table of contents after generating content
+                                                                    showSearchBar = false
+                                                                    showSearchHistory = false
                                                                 }
-                                                            }
-                                                        } catch {
-                                                            DispatchQueue.main.async {
-                                                                self.errorMessage = "Error: \(error.localizedDescription)"
-                                                                self.isLoading = false
-                                                                self.stopLoadingMessageTimer()
-                                                                withAnimation {
-                                                                    self.showLoadingOverlay = false
-                                                                    self.showInappropriateContentWarning = true
+                                                            } else {
+                                                                Task {
+                                                                    await generateLesson()
                                                                 }
                                                             }
                                                         }
-                                                    }
 
-                                                    func processGeneratedContent(_ content: String) async {
-                                                        // ... (implementation remains the same)
-                                                    }
+                                                        func updateLoadingMessage() {
+                                                            loadingMessage = loadingMessages.randomElement() ?? "Loading..."
+                                                        }
 
-                                                    func resetToMainPage() {
-                                                        withAnimation {
-                                                            showSearchBar = true
-                                                            units.removeAll()
-                                                            topic = ""
+                                                        func startLoadingMessageTimer() {
+                                                            loadingMessageTimer?.invalidate()
+                                                            loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                                                                withAnimation {
+                                                                    updateLoadingMessage()
+                                                                }
+                                                            }
+                                                        }
+
+                                                        func stopLoadingMessageTimer() {
+                                                            loadingMessageTimer?.invalidate()
+                                                            loadingMessageTimer = nil
+                                                        }
+
+                                                        func generateLesson() async {
+                                                            if let savedUnits = savedContent[topic] {
+                                                                DispatchQueue.main.async {
+                                                                    self.units = savedUnits
+                                                                    self.isLoading = false
+                                                                    withAnimation {
+                                                                        self.showSearchBar = false
+                                                                        self.showTableOfContents = true
+                                                                    }
+                                                                }
+                                                                return
+                                                            }
+
+                                                            if !recentSearches.contains(topic) {
+                                                                recentSearches.insert(topic, at: 0)
+                                                                if recentSearches.count > 10 {  // Limit to 10 recent searches
+                                                                    recentSearches = Array(recentSearches.prefix(10))
+                                                                }
+                                                                saveRecentSearches()
+                                                            }
+
+                                                            isLoading = true
                                                             errorMessage = nil
                                                             debugText = ""
-                                                            showInappropriateContentWarning = false
-                                                            showTableOfContents = false
+                                                            units.removeAll()
+                                                            currentUnitIndex = 0
+                                                            currentCardIndex = 0
+                                                            updateLoadingMessage()
+                                                            startLoadingMessageTimer()
+                                                            withAnimation {
+                                                                showSearchBar = false
+                                                                showSearchHistory = false
+                                                                showLoadingOverlay = true
+                                                            }
+
+                                                            let prompt = """
+                                                            Create a structured microlearning curriculum for the topic: \(topic).
+                                                            Provide exactly 5 main units, each covering a unique aspect of the topic.
+                                                            For each unit, provide exactly 3 key points or concepts.
+                                                            Format your response as follows:
+
+                                                            UNIT: [Unit 1 Title]
+                                                            TITLE: [Title for point 1]
+                                                            CONTENT: [Explanation for point 1, keep it under 50 words]
+                                                            TITLE: [Title for point 2]
+                                                            CONTENT: [Explanation for point 2, keep it under 50 words]
+                                                            TITLE: [Title for point 3]
+                                                            CONTENT: [Explanation for point 3, keep it under 50 words]
+                                                            ---
+                                                            UNIT: [Unit 2 Title]
+                                                            ... (repeat the structure for all 5 units)
+
+                                                            Ensure each unit has a clear, distinct focus within the overall topic.
+                                                            Do not use any markdown formatting. Use plain text only.
+                                                            It is crucial that you provide exactly 5 units, no more and no less.
+                                                            """
+
+                                                            do {
+                                                                let response = try await model.generateContent(prompt)
+                                                                if let text = response.text {
+                                                                    await processGeneratedContent(text)
+                                                                }
+
+                                                                DispatchQueue.main.async {
+                                                                    self.isLoading = false
+                                                                    self.saveCurrentContent()
+                                                                    self.stopLoadingMessageTimer()
+                                                                    withAnimation {
+                                                                        self.showLoadingOverlay = false
+                                                                        self.showTableOfContents = false  // Don't show table of contents after generating content
+                                                                    }
+                                                                }
+                                                            } catch {
+                                                                DispatchQueue.main.async {
+                                                                    self.errorMessage = "Error: \(error.localizedDescription)"
+                                                                    self.isLoading = false
+                                                                    self.stopLoadingMessageTimer()
+                                                                    withAnimation {
+                                                                        self.showLoadingOverlay = false
+                                                                        self.showInappropriateContentWarning = true
+                                                                    }
+                                                                }
+                                                            }
                                                         }
-                                                    }
 
-                                                    func loadRecentSearches() {
-                                                        if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
-                                                            recentSearches = savedSearches
+                                                        func processGeneratedContent(_ content: String) async {
+                                                            let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
+                                                            var newUnits: [Unit] = []
+
+                                                            for section in unitSections {
+                                                                let lines = section.split(separator: "\n")
+                                                                if lines.count >= 7 {
+                                                                    let unitTitle = String(lines[0].dropFirst(6))
+                                                                    var cards: [Card] = []
+
+                                                                    for i in stride(from: 1, to: lines.count, by: 3) {
+                                                                        if i + 2 < lines.count {
+                                                                            let title = String(lines[i].dropFirst(7))
+                                                                            let content = String(lines[i + 1].dropFirst(9))
+                                                                            let category = ContentCategory.matchCategory(for: content)
+                                                                            cards.append(Card(title: title, content: content, category: category))
+                                                                        }
+                                                                    }
+
+                                                                    newUnits.append(Unit(title: unitTitle, cards: cards))
+                                                                }
+                                                            }
+
+                                                            DispatchQueue.main.async {
+                                                                self.units = newUnits
+                                                            }
                                                         }
-                                                    }
 
-                                                    func saveRecentSearches() {
-                                                        UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
-                                                    }
-
-                                                    func saveCurrentContent() {
-                                                        savedContent[topic] = units
-                                                        saveContentToUserDefaults()
-                                                    }
-
-                                                    func saveContentToUserDefaults() {
-                                                        if let encodedContent = try? JSONEncoder().encode(savedContent) {
-                                                            UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
+                                                        func resetToMainPage() {
+                                                            withAnimation {
+                                                                showSearchBar = true
+                                                                units.removeAll()
+                                                                topic = ""
+                                                                errorMessage = nil
+                                                                debugText = ""
+                                                                showInappropriateContentWarning = false
+                                                                showTableOfContents = false
+                                                            }
                                                         }
-                                                    }
 
-                                                    func loadSavedContent() {
-                                                        if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
-                                                           let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
-                                                            savedContent = decodedContent
+                                                        func loadRecentSearches() {
+                                                            if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
+                                                                recentSearches = savedSearches
+                                                            }
                                                         }
-                                                    }
 
-                                                    func generateMoreUnits() async {
-                                                        // ... (implementation remains the same)
-                                                    }
-
-                                                    func processAdditionalUnits(_ content: String) async {
-                                                        // ... (implementation remains the same)
-                                                    }
-
-                                                    func loadStreak() {
-                                                        if let savedStreak = UserDefaults.standard.object(forKey: "Streak") as? Int {
-                                                            streak = savedStreak
+                                                        func saveRecentSearches() {
+                                                            UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
                                                         }
-                                                        if let savedDate = UserDefaults.standard.object(forKey: "LastVisitDate") as? Date {
-                                                            lastVisitDate = savedDate
+
+                                                        func saveCurrentContent() {
+                                                            savedContent[topic] = units
+                                                            saveContentToUserDefaults()
                                                         }
-                                                    }
 
-                                                    func saveStreak() {
-                                                        UserDefaults.standard.set(streak, forKey: "Streak")
-                                                        UserDefaults.standard.set(lastVisitDate, forKey: "LastVisitDate")
-                                                    }
+                                                        func saveContentToUserDefaults() {
+                                                            if let encodedContent = try? JSONEncoder().encode(savedContent) {
+                                                                UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
+                                                            }
+                                                        }
 
-                                                    func updateStreak() {
-                                                        let currentDate = Date()
-                                                        let calendar = Calendar.current
+                                                        func loadSavedContent() {
+                                                            if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
+                                                               let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
+                                                                savedContent = decodedContent
+                                                            }
+                                                        }
 
-                                                        if let lastVisit = lastVisitDate {
-                                                            if calendar.isDate(currentDate, inSameDayAs: lastVisit) {
-                                                                // Do nothing if it's the same day
-                                                            } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: currentDate),
-                                                                      calendar.isDate(lastVisit, inSameDayAs: yesterday) {
-                                                                // Increment streak if the last visit was yesterday
-                                                                streak += 1
+                                                        func generateMoreUnits() async {
+                                                            let currentUnitCount = units.count
+                                                            let prompt = """
+                                                            Continue the microlearning curriculum for the topic: \(topic).
+                                                            We already have \(currentUnitCount) units. Please provide 3 more units, each covering a unique aspect of the topic that hasn't been covered yet.
+                                                            For each unit, provide exactly 3 key points or concepts.
+                                                            Format your response as follows:
+
+                                                            UNIT: [Unit \(currentUnitCount + 1) Title]
+                                                            TITLE: [Title for point 1]
+                                                            CONTENT: [Explanation for point 1, keep it under 50 words]
+                                                            TITLE: [Title for point 2]
+                                                            CONTENT: [Explanation for point 2, keep it under 50 words]
+                                                            TITLE: [Title for point 3]
+                                                            CONTENT: [Explanation for point 3, keep it under 50 words]
+                                                            ---
+                                                            UNIT: [Unit \(currentUnitCount + 2) Title]
+                                                            ... (repeat the structure for all 3 new units)
+
+                                                            Ensure each unit has a clear, distinct focus within the overall topic.
+                                                            Do not use any markdown formatting. Use plain text only.
+                                                            It is crucial that you provide exactly 3 new units, no more and no less.
+                                                            """
+
+                                                            do {
+                                                                let response = try await model.generateContent(prompt)
+                                                                if let text = response.text {
+                                                                    await processAdditionalUnits(text)
+                                                                }
+                                                            } catch {
+                                                                DispatchQueue.main.async {
+                                                                    self.errorMessage = "Error generating more units: \(error.localizedDescription)"
+                                                                }
+                                                            }
+                                                        }
+
+                                                        func processAdditionalUnits(_ content: String) async {
+                                                            let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
+                                                            var newUnits: [Unit] = []
+
+                                                            for section in unitSections {
+                                                                let lines = section.split(separator: "\n")
+                                                                if lines.count >= 7 {
+                                                                    let unitTitle = String(lines[0].dropFirst(6))
+                                                                    var cards: [Card] = []
+
+                                                                    for i in stride(from: 1, to: lines.count, by: 3) {
+                                                                        if i + 2 < lines.count {
+                                                                            let title = String(lines[i].dropFirst(7))
+                                                                            let content = String(lines[i + 1].dropFirst(9))
+                                                                            let category = ContentCategory.matchCategory(for: content)
+                                                                            cards.append(Card(title: title, content: content, category: category))
+                                                                        }
+                                                                    }
+
+                                                                    newUnits.append(Unit(title: unitTitle, cards: cards))
+                                                                }
+                                                            }
+
+                                                            DispatchQueue.main.async {
+                                                                self.units.append(contentsOf: newUnits)
+                                                                self.saveCurrentContent()
+                                                            }
+                                                        }
+
+                                                        func loadStreak() {
+                                                            if let savedStreak = UserDefaults.standard.object(forKey: "Streak") as? Int {
+                                                                streak = savedStreak
+                                                            }
+                                                            if let savedDate = UserDefaults.standard.object(forKey: "LastVisitDate") as? Date {
+                                                                lastVisitDate = savedDate
+                                                            }
+                                                        }
+
+                                                        func saveStreak() {
+                                                            UserDefaults.standard.set(streak, forKey: "Streak")
+                                                            UserDefaults.standard.set(lastVisitDate, forKey: "LastVisitDate")
+                                                        }
+
+                                                        func updateStreak() {
+                                                            let currentDate = Date()
+                                                            let calendar = Calendar.current
+
+                                                            if let lastVisit = lastVisitDate {
+                                                                if calendar.isDate(currentDate, inSameDayAs: lastVisit) {
+                                                                    // Do nothing if it's the same day
+                                                                } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: currentDate),
+                                                                          calendar.isDate(lastVisit, inSameDayAs: yesterday) {
+                                                                    // Increment streak if the last visit was yesterday
+                                                                    streak += 1
+                                                                } else {
+                                                                    // Reset streak if there's a gap
+                                                                    streak = 1
+                                                                }
                                                             } else {
-                                                                // Reset streak if there's a gap
+                                                                // First visit
                                                                 streak = 1
                                                             }
-                                                        } else {
-                                                            // First visit
-                                                            streak = 1
+
+                                                            lastVisitDate = currentDate
+                                                            saveStreak()
                                                         }
-
-                                                        lastVisitDate = currentDate
-                                                        saveStreak()
                                                     }
-                                                }
 
-                                                struct LoadingOverlay: View {
-                                                    @Binding var loadingMessage: String
-                                                    
-                                                    var body: some View {
-                                                        ZStack {
-                                                            Color.black.opacity(0.7)
-                                                                .edgesIgnoringSafeArea(.all)
-                                                            
-                                                            VStack {
-                                                                Text(loadingMessage)
-                                                                    .font(.headline)
-                                                                    .foregroundColor(.white)
-                                                                    .padding(.bottom, 20)
-                                                                ScatteredQuantumLoader()
-                                                                    .frame(width: 200, height: 200)
+                                                    struct LoadingOverlay: View {
+                                                        @Binding var loadingMessage: String
+                                                        
+                                                        var body: some View {
+                                                            ZStack {
+                                                                Color.black.opacity(0.7)
+                                                                    .edgesIgnoringSafeArea(.all)
+                                                                
+                                                                VStack {
+                                                                    Text(loadingMessage)
+                                                                        .font(.headline)
+                                                                        .foregroundColor(.white)
+                                                                        .padding(.bottom, 20)
+                                                                    ScatteredQuantumLoader()
+                                                                        .frame(width: 200, height: 200)
+                                                                }
                                                             }
                                                         }
                                                     }
-                                                }
 
-@main
+                                                    @main
+                                                    struct YourAppNameApp: App {
+                                                        var body: some Scene {
+                                                            WindowGroup {
+                                                                ContentView()
+                                                            }
+                                                        }
+                                                    }
 
-struct YourAppNameApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
-    
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-    
-}
+                                                    struct ContentView_Previews: PreviewProvider {
+                                                        static var previews: some View {
+                                                            ContentView()
+                                                        }
+                                                    }
