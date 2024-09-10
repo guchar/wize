@@ -637,6 +637,90 @@ struct CardView: View {
                         }
                     }
 
+struct DisambiguationView: View {
+    let topic: String
+    let options: [String]
+    let onSelect: (String) -> Void
+    let onCancel: () -> Void
+    
+    @State private var showOtherInput: Bool = false
+    @State private var otherInput: String = ""
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Choose a Topic")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text("The topic '\(topic)' has multiple meanings. Please choose one:")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.8))
+                .multilineTextAlignment(.center)
+            
+            VStack(spacing: 12) {
+                ForEach(options, id: \.self) { option in
+                    Button(action: { onSelect(option) }) {
+                        Text(option)
+                            .font(.body)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(10)
+                    }
+                }
+                
+                Button(action: { showOtherInput.toggle() }) {
+                    Text("Other")
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(10)
+                }
+                
+                if showOtherInput {
+                    TextField("Enter your specific prompt", text: $otherInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .foregroundColor(.black)
+                        .padding(.horizontal)
+                    
+                    Button(action: { onSelect(otherInput) }) {
+                        Text("Submit Custom Prompt")
+                            .font(.body)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.green.opacity(0.6))
+                            .cornerRadius(10)
+                    }
+                    .disabled(otherInput.isEmpty)
+                }
+                
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(10)
+                }
+            }
+        }
+        .padding(30)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(LinearGradient(gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.pink.opacity(0.8)]), startPoint: .topLeading, endPoint: .bottomTrailing))
+        )
+        .shadow(radius: 10)
+        .padding(.horizontal, 20)
+    }
+}
+
+
                     struct ContentView: View {
                         @State private var topic: String = ""
                         @State private var units: [Unit] = []
@@ -656,6 +740,9 @@ struct CardView: View {
                         @State private var showLoadingOverlay = false
                         @State private var streak: Int = 0
                         @State private var lastVisitDate: Date?
+                        @State private var disambiguationOptions: [String] = []
+                        @State private var showDisambiguationAlert: Bool = false
+                        @State private var showDisambiguation = false
 
                         let model = GenerativeModel(name: "gemini-pro", apiKey: "AIzaSyCjTPZDl4OWfSFVuuNK4QCqjepfr4NnBmQ")
 
@@ -711,6 +798,21 @@ struct CardView: View {
                                         }
                                     }
                                     .edgesIgnoringSafeArea(.all)
+                                    .alert("Choose a Topic", isPresented: $showDisambiguationAlert) {
+                                                ForEach(disambiguationOptions, id: \.self) { option in
+                                                    Button(option) {
+                                                        topic = "\(topic) (\(option))"
+                                                        Task {
+                                                            await generateLessonContent()
+                                                        }
+                                                    }
+                                                }
+                                                Button("Cancel", role: .cancel) {
+                                                    resetToMainPage()
+                                                }
+                                            } message: {
+                                                Text("The topic '\(topic)' has multiple meanings. Please choose one:")
+                                            }
 
                                     VStack(spacing: 20) {
                                         if showInappropriateContentWarning {
@@ -928,11 +1030,43 @@ struct CardView: View {
                                                                             Spacer()
                                                                         }
                                                                     }
-                                                                    .navigationBarHidden(true)
+                                    if showDisambiguation {
+                                        Color.black.opacity(0.4)
+                                            .edgesIgnoringSafeArea(.all)
+                                            .onTapGesture {
+                                                showDisambiguation = false
+                                            }
+                                        
+                                        DisambiguationView(
+                                            topic: topic,
+                                            options: disambiguationOptions,
+                                            onSelect: { selectedOption in
+                                                if disambiguationOptions.contains(selectedOption) {
+                                                    topic = "\(topic) (\(selectedOption))"
+                                                } else {
+                                                    topic = selectedOption // Use the custom input directly
+                                                }
+                                                showDisambiguation = false
+                                                withAnimation {
+                                                    showLoadingOverlay = true
+                                                }
+                                                updateLoadingMessage()
+                                                startLoadingMessageTimer()
+                                                Task {
+                                                    await generateLessonContent()
+                                                }
+                                            },
+                                            onCancel: {
+                                                showDisambiguation = false
+                                                resetToMainPage()
+                                            }
+                                        )
+                                        .transition(.scale)
+                                    }
 
-                                                                    if showLoadingOverlay {
-                                                                        LoadingOverlay(loadingMessage: $loadingMessage)
-                                                                    }
+                                    if showLoadingOverlay {
+                                        LoadingOverlay(loadingMessage: $loadingMessage)
+                                    }
                                                                 }
                                                             }
                                                             .onAppear {
@@ -995,122 +1129,167 @@ struct CardView: View {
                                                             loadingMessageTimer = nil
                                                         }
 
-                                                        func generateLesson() async {
-                                                            if let savedUnits = savedContent[topic] {
-                                                                DispatchQueue.main.async {
-                                                                    self.units = savedUnits
-                                                                    self.isLoading = false
-                                                                    withAnimation {
-                                                                        self.showSearchBar = false
-                                                                        self.showTableOfContents = true
-                                                                    }
-                                                                }
-                                                                return
-                                                            }
+                        func generateLesson() async {
+                            if let savedUnits = savedContent[topic] {
+                                DispatchQueue.main.async {
+                                    self.units = savedUnits
+                                    self.isLoading = false
+                                    withAnimation {
+                                        self.showSearchBar = false
+                                        self.showTableOfContents = true
+                                    }
+                                }
+                                return
+                            }
 
-                                                            if !recentSearches.contains(topic) {
-                                                                recentSearches.insert(topic, at: 0)
-                                                                if recentSearches.count > 10 {  // Limit to 10 recent searches
-                                                                    recentSearches = Array(recentSearches.prefix(10))
-                                                                }
-                                                                saveRecentSearches()
-                                                            }
+                            if !recentSearches.contains(topic) {
+                                recentSearches.insert(topic, at: 0)
+                                if recentSearches.count > 10 {  // Limit to 10 recent searches
+                                    recentSearches = Array(recentSearches.prefix(10))
+                                }
+                                saveRecentSearches()
+                            }
 
-                                                            isLoading = true
-                                                            errorMessage = nil
-                                                            debugText = ""
-                                                            units.removeAll()
-                                                            currentUnitIndex = 0
-                                                            currentCardIndex = 0
-                                                            updateLoadingMessage()
-                                                            startLoadingMessageTimer()
-                                                            withAnimation {
-                                                                showSearchBar = false
-                                                                showSearchHistory = false
-                                                                showLoadingOverlay = true
-                                                            }
+                            isLoading = true
+                            errorMessage = nil
+                            debugText = ""
+                            units.removeAll()
+                            currentUnitIndex = 0
+                            currentCardIndex = 0
+                            updateLoadingMessage()
+                            startLoadingMessageTimer()
+                            withAnimation {
+                                showSearchBar = false
+                                showSearchHistory = false
+                                showLoadingOverlay = true
+                            }
 
-                                                            let prompt = """
-                                                            Create a structured, formal microlearning curriculum for the topic: \(topic).
-                                                            Provide exactly 5 main units, each covering a unique aspect of the topic.
-                                                            For each unit, provide exactly 3 key points or concepts.
-                                                            Use formal language and ensure proper capitalization of all names, places, historical terms, and proper nouns.
-                                                            Format your response as follows:
+                            // Check for ambiguity
+                            let ambiguityPrompt = """
+                            The topic "\(topic)" might have multiple meanings. Please provide up to 3 distinct interpretations or contexts for this topic.
+                            If there's only one clear meaning, just respond with "SINGLE_MEANING".
+                            Format your response as:
+                            1. [First interpretation]
+                            2. [Second interpretation]
+                            3. [Third interpretation]
+                            Or simply "SINGLE_MEANING" if there's no ambiguity.
+                            """
 
-                                                            UNIT: [Unit 1 Title (properly capitalized)]
-                                                            TITLE: [Title for point 1 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 2 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 3 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-                                                            ---
-                                                            UNIT: [Unit 2 Title (properly capitalized)]
-                                                            TITLE: [Title for point 1 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 2 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 3 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-                                                            ---
-                                                            UNIT: [Unit 3 Title (properly capitalized)]
-                                                            TITLE: [Title for point 1 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 2 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 3 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-                                                            ---
-                                                            UNIT: [Unit 4 Title (properly capitalized)]
-                                                            TITLE: [Title for point 1 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 2 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 3 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-                                                            ---
-                                                            UNIT: [Unit 5 Title (properly capitalized)]
-                                                            TITLE: [Title for point 1 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 2 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-                                                            TITLE: [Title for point 3 (properly capitalized)]
-                                                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                            do {
+                                let ambiguityResponse = try await model.generateContent(ambiguityPrompt)
+                                if let ambiguityText = ambiguityResponse.text {
+                                    if ambiguityText.trimmingCharacters(in: .whitespacesAndNewlines) == "SINGLE_MEANING" {
+                                        await generateLessonContent()
+                                    } else {
+                                        let options = ambiguityText.components(separatedBy: "\n")
+                                            .map { $0.replacingOccurrences(of: "^\\d+\\.\\s*", with: "", options: .regularExpression) }
+                                            .filter { !$0.isEmpty }
+                                        DispatchQueue.main.async {
+                                            self.disambiguationOptions = options
+                                            self.showDisambiguation = true
+                                            self.isLoading = false
+                                            self.stopLoadingMessageTimer()
+                                            self.showLoadingOverlay = false
+                                        }
+                                        return
+                                    }
+                                }
+                            } catch {
+                                DispatchQueue.main.async {
+                                    self.errorMessage = "Error: \(error.localizedDescription)"
+                                    self.isLoading = false
+                                    self.stopLoadingMessageTimer()
+                                    withAnimation {
+                                        self.showLoadingOverlay = false
+                                        self.showInappropriateContentWarning = true
+                                    }
+                                }
+                                return
+                            }
+                        }
 
-                                                            Ensure each unit has a clear, distinct focus within the overall topic.
-                                                            Use formal language and proper capitalization throughout, especially for names, places, and historical terms.
-                                                            It is crucial that you provide exactly 5 units, no more and no less.
-                                                            Do not use any markdown formatting. Use plain text only.
-                                                            """
+                        func generateLessonContent() async {
+                            let prompt = """
+                            Create a structured, formal microlearning curriculum for the topic: \(topic).
+                            Provide exactly 5 main units, each covering a unique aspect of the topic.
+                            For each unit, provide exactly 3 key points or concepts.
+                            Use formal language and ensure proper capitalization of all names, places, historical terms, and proper nouns.
+                            Format your response as follows:
 
-                                                            do {
-                                                                let response = try await model.generateContent(prompt)
-                                                                if let text = response.text {
-                                                                    await processGeneratedContent(text)
-                                                                }
+                            UNIT: [Unit 1 Title (properly capitalized)]
+                            TITLE: [Title for point 1 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 2 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 3 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                            ---
+                            UNIT: [Unit 2 Title (properly capitalized)]
+                            TITLE: [Title for point 1 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 2 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 3 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                            ---
+                            UNIT: [Unit 3 Title (properly capitalized)]
+                            TITLE: [Title for point 1 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 2 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 3 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                            ---
+                            UNIT: [Unit 4 Title (properly capitalized)]
+                            TITLE: [Title for point 1 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 2 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 3 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                            ---
+                            UNIT: [Unit 5 Title (properly capitalized)]
+                            TITLE: [Title for point 1 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 2 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                            TITLE: [Title for point 3 (properly capitalized)]
+                            CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
 
-                                                                DispatchQueue.main.async {
-                                                                    self.isLoading = false
-                                                                    self.saveCurrentContent()
-                                                                    self.stopLoadingMessageTimer()
-                                                                    withAnimation {
-                                                                        self.showLoadingOverlay = false
-                                                                        self.showTableOfContents = false  // Don't show table of contents after generating content
-                                                                    }
-                                                                }
-                                                            } catch {
-                                                                DispatchQueue.main.async {
-                                                                    self.errorMessage = "Error: \(error.localizedDescription)"
-                                                                    self.isLoading = false
-                                                                    self.stopLoadingMessageTimer()
-                                                                    withAnimation {
-                                                                        self.showLoadingOverlay = false
-                                                                        self.showInappropriateContentWarning = true
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
+                            Ensure each unit has a clear, distinct focus within the overall topic.
+                            Use formal language and proper capitalization throughout, especially for names, places, and historical terms.
+                            It is crucial that you provide exactly 5 units, no more and no less.
+                            Do not use any markdown formatting. Use plain text only.
+                            """
 
+                            do {
+                                    let response = try await model.generateContent(prompt)
+                                    if let text = response.text {
+                                        await processGeneratedContent(text)
+                                    }
+
+                                    DispatchQueue.main.async {
+                                        self.isLoading = false
+                                        self.saveCurrentContent()
+                                        self.stopLoadingMessageTimer()
+                                        withAnimation {
+                                            self.showLoadingOverlay = false
+                                            self.showTableOfContents = false  // Don't show table of contents after generating content
+                                        }
+                                    }
+                                } catch {
+                                    DispatchQueue.main.async {
+                                        self.errorMessage = "Error: \(error.localizedDescription)"
+                                        self.isLoading = false
+                                        self.stopLoadingMessageTimer()
+                                        withAnimation {
+                                            self.showLoadingOverlay = false
+                                            self.showInappropriateContentWarning = true
+                                        }
+                                    }
+                                }
+                        }
+                        
                         func processGeneratedContent(_ content: String) async {
                             let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
                             var newUnits: [Unit] = []
@@ -1157,17 +1336,19 @@ struct CardView: View {
                             }
                         }
 
-                                                        func resetToMainPage() {
-                                                            withAnimation {
-                                                                showSearchBar = true
-                                                                units.removeAll()
-                                                                topic = ""
-                                                                errorMessage = nil
-                                                                debugText = ""
-                                                                showInappropriateContentWarning = false
-                                                                showTableOfContents = false
-                                                            }
-                                                        }
+                        func resetToMainPage() {
+                            withAnimation {
+                                showSearchBar = true
+                                units.removeAll()
+                                topic = ""
+                                errorMessage = nil
+                                debugText = ""
+                                showInappropriateContentWarning = false
+                                showTableOfContents = false
+                                disambiguationOptions.removeAll()
+                                showDisambiguation = false
+                            }
+                        }
 
                                                         func loadRecentSearches() {
                                                             if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
