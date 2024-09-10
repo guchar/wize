@@ -1101,20 +1101,28 @@ struct ContentView: View {
     }
 
     func selectSearch(_ search: String) {
-        topic = search
+        topic = search // This now includes the full key
+        print("Selecting search: \(search)")
         if let savedUnits = savedContent[search] {
-            units = savedUnits
-            withAnimation {
-                showSearchBar = false
-                showSearchHistory = false
+            print("Found saved content for \(search). Units: \(savedUnits.count)")
+            DispatchQueue.main.async {
+                self.units = savedUnits
+                self.currentUnitIndex = 0
+                self.currentCardIndex = 0
+                withAnimation {
+                    self.showSearchBar = false
+                    self.showSearchHistory = false
+                    self.showTableOfContents = true
+                }
             }
         } else {
+            print("No saved content found for \(search). Generating new content.")
             Task {
                 await generateLesson()
             }
         }
     }
-
+    
     func updateLoadingMessage() {
         loadingMessage = loadingMessages.randomElement() ?? "Loading..."
     }
@@ -1135,17 +1143,17 @@ struct ContentView: View {
 
     func generateLesson() async {
         if let savedUnits = savedContent[topic] {
-            DispatchQueue.main.async {
-                self.units = savedUnits
-                self.isLoading = false
-                withAnimation {
-                    self.showSearchBar = false
-                    self.showTableOfContents = true
+                DispatchQueue.main.async {
+                    self.units = savedUnits
+                    self.isLoading = false
+                    withAnimation {
+                        self.showSearchBar = false
+                        self.showTableOfContents = true
+                    }
                 }
+                return
             }
-            return
-        }
-
+        
         if !recentSearches.contains(topic) {
             recentSearches.insert(topic, at: 0)
             if recentSearches.count > 10 {  // Limit to 10 recent searches
@@ -1153,19 +1161,22 @@ struct ContentView: View {
             }
             saveRecentSearches()
         }
-
+        
         isLoading = true
         errorMessage = nil
         debugText = ""
         units.removeAll()
         currentUnitIndex = 0
         currentCardIndex = 0
+        
         updateLoadingMessage()
         startLoadingMessageTimer()
+        
         withAnimation {
             showSearchBar = false
             showSearchHistory = false
             showLoadingOverlay = true
+            
         }
 
         // Check for ambiguity
@@ -1200,6 +1211,7 @@ struct ContentView: View {
             }
         } catch {
             DispatchQueue.main.async {
+                self.saveCurrentContent()
                 self.errorMessage = "Error: \(error.localizedDescription)"
                 self.isLoading = false
                 self.stopLoadingMessageTimer()
@@ -1336,8 +1348,15 @@ struct ContentView: View {
         }
 
         DispatchQueue.main.async {
-            self.units = newUnits
-        }
+                self.units = newUnits
+                self.saveCurrentContent() // Make sure this is called
+                self.isLoading = false
+                self.stopLoadingMessageTimer()
+                withAnimation {
+                    self.showLoadingOverlay = false
+                    self.showTableOfContents = false
+                }
+            }
     }
 
     func resetToMainPage() {
@@ -1365,10 +1384,13 @@ struct ContentView: View {
     }
 
     func saveCurrentContent() {
+        print("Saving content for topic: \(topic)")
         savedContent[topic] = units
+        print("Number of units saved: \(units.count)")
         saveContentToUserDefaults()
+        print("Current keys in savedContent after saving: \(savedContent.keys.sorted())")
     }
-
+    
     func saveContentToUserDefaults() {
         if let encodedContent = try? JSONEncoder().encode(savedContent) {
             UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
@@ -1376,9 +1398,21 @@ struct ContentView: View {
     }
 
     func loadSavedContent() {
-        if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent"),
-           let decodedContent = try? JSONDecoder().decode([String: [Unit]].self, from: savedContentData) {
-            savedContent = decodedContent
+        if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent") {
+            do {
+                let decodedContent = try JSONDecoder().decode([String: [Unit]].self, from: savedContentData)
+                DispatchQueue.main.async {
+                    self.savedContent = decodedContent
+                    print("Loaded saved content:")
+                    for (topic, units) in decodedContent {
+                        print("Topic: \(topic), Units: \(units.count)")
+                    }
+                }
+            } catch {
+                print("Error decoding saved content: \(error)")
+            }
+        } else {
+            print("No saved content found in UserDefaults")
         }
     }
 
@@ -1386,7 +1420,7 @@ struct ContentView: View {
         let currentUnitCount = units.count
         let prompt = """
         Continue the microlearning curriculum for the topic: \(topic).
-        We already have \(currentUnitCount) units. Please provide 3 more units, each covering a unique aspect of the topic that hasn't been covered yet.
+        We already have \(currentUnitCount) units. Please provide EXACTLY 3 more units, each covering a unique aspect of the topic that hasn't been covered yet.
         For each unit, provide exactly 3 key points or concepts.
         Format your response as follows:
 
@@ -1403,7 +1437,7 @@ struct ContentView: View {
 
         Ensure each unit has a clear, distinct focus within the overall topic.
         Do not use any markdown formatting. Use plain text only.
-        It is crucial that you provide exactly 3 new units, no more and no less.
+        It is CRUCIAL that you provide EXACTLY 3 new units, no more and no less.
         """
 
         do {
@@ -1438,8 +1472,8 @@ struct ContentView: View {
                 let unitTitle = String(lines[0].dropFirst(6))
                 var cards: [Card] = []
 
-                for i in stride(from: 1, to: lines.count, by: 3) {
-                    if i + 2 < lines.count {
+                for i in stride(from: 1, to: lines.count, by: 2) {
+                    if i + 1 < lines.count {
                         let title = String(lines[i].dropFirst(7))
                         let content = String(lines[i + 1].dropFirst(9))
                         let category = ContentCategory.matchCategory(for: content)
@@ -1447,9 +1481,25 @@ struct ContentView: View {
                     }
                 }
 
+                // Ensure we have exactly 3 cards per unit
+                while cards.count < 3 {
+                    cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
+                }
+                cards = Array(cards.prefix(3))
+
                 newUnits.append(Unit(title: unitTitle, cards: cards))
             }
         }
+
+        // Ensure we have exactly 3 new units
+        while newUnits.count < 3 {
+            newUnits.append(Unit(title: "Additional Unit", cards: [
+                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
+                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
+                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other)
+            ]))
+        }
+        newUnits = Array(newUnits.prefix(3))
 
         DispatchQueue.main.async {
             self.units.append(contentsOf: newUnits)
