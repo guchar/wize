@@ -458,1125 +458,1112 @@ struct CardView: View {
             VStack {
                 ZStack {
                     ForEach(cards.indices, id: \.self) { index in
-                        CardContent(card: cards[index])
-                            .opacity(index == currentIndex ? 1 : 0)
-                            .scaleEffect(index == currentIndex ? 1 : 0.5)
-                    }
-                }
-                .gesture(
-                    DragGesture()
-                        .onEnded { value in
-                            if value.translation.width < -50 && currentIndex < cards.count - 1 {
-                                withAnimation {
-                                    currentIndex += 1
-                                }
-                            } else if value.translation.width > 50 && currentIndex > 0 {
-                                withAnimation {
-                                    currentIndex -= 1
-                                }
-                            } else if value.translation.width < -50 && currentIndex == cards.count - 1 {
-                                onLastCardSwiped()
-                            }
-                        }
-                )
-            }
-        }
-    }
-}
-
-struct UnitView: View {
-    let units: [Unit]
-    @Binding var currentUnitIndex: Int
-    @Binding var currentCardIndex: Int
-    @Binding var showTableOfContents: Bool
-
-    var body: some View {
-        VStack {
-            Button(action: { showTableOfContents = true }) {
-                Text("Table of Contents")
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 20)
-                    .background(Color.blue.opacity(0.6))
-                    .cornerRadius(20)
-            }
-            .padding(.top, 20)
-
-            Text("Unit \(currentUnitIndex + 1): \(units[currentUnitIndex].title)")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.green.opacity(0.1)]),
-                                           startPoint: .leading,
-                                           endPoint: .trailing))
-                .cornerRadius(0)
-                .padding(.horizontal)
-
-            CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex) {
-                if currentUnitIndex < units.count - 1 {
-                    withAnimation {
-                        currentUnitIndex += 1
-                        currentCardIndex = 0
-                    }
-                }
-            }
-
-            HStack {
-                Button(action: previousCard) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.white)
-                }
-
-                Spacer()
-
-                ForEach(0..<units[currentUnitIndex].cards.count, id: \.self) { index in
-                    Circle()
-                        .fill(index == currentCardIndex ? Color.white : Color.gray)
-                        .frame(width: 8, height: 8)
-                }
-
-                Spacer()
-
-                Button(action: nextCard) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.white)
-                }
-            }
-            .padding()
-
-            if !showTableOfContents {
-                HStack {
-                    Button(action: previousUnit) {
-                        Text("Previous Unit")
-                            .foregroundColor(.white)
-                    }
-                    .disabled(currentUnitIndex == 0)
-                    Spacer()
-
-                    Text("\(currentUnitIndex + 1) / \(units.count)")
-                        .font(.caption)
-                        .foregroundColor(.white)
-
-                    Spacer()
-
-                    Button(action: nextUnit) {
-                        Text("Next Unit")
-                            .foregroundColor(currentUnitIndex == units.count - 1 ? .gray : .white)
-                    }
-                    .disabled(currentUnitIndex == units.count - 1)
-                }
-                .padding()
-            }
-        }
-    }
-
-    func previousUnit() {
-        if currentUnitIndex > 0 {
-            withAnimation {
-                currentUnitIndex -= 1
-                currentCardIndex = 0
-            }
-        }
-    }
-
-    func nextUnit() {
-        if currentUnitIndex < units.count - 1 {
-            withAnimation {
-                currentUnitIndex += 1
-                currentCardIndex = 0
-            }
-        }
-    }
-
-    func previousCard() {
-        if currentCardIndex > 0 {
-            withAnimation {
-                currentCardIndex -= 1
-            }
-        } else if currentUnitIndex > 0 {
-            withAnimation {
-                currentUnitIndex -= 1
-                currentCardIndex = units[currentUnitIndex].cards.count - 1
-            }
-        }
-    }
-
-    func nextCard() {
-        if currentCardIndex < units[currentUnitIndex].cards.count - 1 {
-            withAnimation {
-                currentCardIndex += 1
-            }
-        } else if currentUnitIndex < units.count - 1 {
-            withAnimation {
-                currentUnitIndex += 1
-                currentCardIndex = 0
-            }
-        }
-    }
-}
-
-struct FireLogoView: View {
-    let streak: Int
-    let size: CGFloat
-    
-    var body: some View {
-        ZStack {
-            Image(systemName: "flame.fill")
-                .resizable()
-                .scaledToFit()
-                .foregroundColor(.orange)
-                .frame(width: size, height: size)
-            
-            Text("\(streak)")
-                .font(.system(size: size * 0.4, weight: .bold))
-                .foregroundColor(.white)
-        }
-    }
-}
-
-struct DisambiguationView: View {
-    let topic: String
-    let options: [String]
-    let onSelect: (String) -> Void
-    let onCancel: () -> Void
-    
-    @State private var showOtherInput: Bool = false
-    @State private var otherInput: String = ""
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Choose a Topic")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text("The topic '\(topic)' has multiple meanings. Please choose one:")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-            
-            VStack(spacing: 12) {
-                ForEach(options, id: \.self) { option in
-                    Button(action: { onSelect(option) }) {
-                        Text(option)
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(10)
-                    }
-                }
-                
-                Button(action: { showOtherInput.toggle() }) {
-                    Text("Other")
-                        .font(.body)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(10)
-                }
-                
-                if showOtherInput {
-                    TextField("Enter your specific prompt", text: $otherInput)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .foregroundColor(.black)
-                        .padding(.horizontal)
-                    
-                    Button(action: { onSelect(otherInput) }) {
-                        Text("Submit Custom Prompt")
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.green.opacity(0.6))
-                            .cornerRadius(10)
-                    }
-                    .disabled(otherInput.isEmpty)
-                }
-                
-                Button(action: onCancel) {
-                    Text("Cancel")
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.7))
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(10)
-                }
-            }
-        }
-        .padding(30)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient(gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.pink.opacity(0.8)]), startPoint: .topLeading, endPoint: .bottomTrailing))
-        )
-        .shadow(radius: 10)
-        .padding(.horizontal, 20)
-    }
-}
-
-struct ContentView: View {
-    @State private var topic: String = ""
-    @State private var units: [Unit] = []
-    @State private var currentUnitIndex: Int = 0
-    @State private var currentCardIndex: Int = 0
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var debugText: String = ""
-    @State private var loadingMessage: String = "Initializing your learning journey..."
-    @State private var showSearchBar = true
-    @State private var recentSearches: [String] = []
-    @State private var savedContent: [String: [Unit]] = [:]
-    @State private var showSearchHistory = false
-    @State private var searchesToDelete: Set<String> = []
-    @State private var showInappropriateContentWarning = false
-    @State private var showTableOfContents = false
-    @State private var showLoadingOverlay = false
-    @State private var streak: Int = 0
-    @State private var lastVisitDate: Date?
-    @State private var disambiguationOptions: [String] = []
-    @State private var showDisambiguationAlert: Bool = false
-    @State private var showDisambiguation = false
-
-    let model = GenerativeModel(name: "gemini-pro", apiKey: "AIzaSyCjTPZDl4OWfSFVuuNK4QCqjepfr4NnBmQ")
-
-    let loadingMessages = [
-        "Creating knowledge...",
-        "Designing your future...",
-        "Becoming your best self...",
-        "Unlocking potential...",
-        "Crafting brilliance...",
-        "Igniting curiosity...",
-        "Forging wisdom...",
-        "Sculpting intellect...",
-        "Brewing insights...",
-        "Planting seeds of knowledge..."
-    ]
-
-    let randomSkills = [
-        "How to tie a tie",
-        "How to whistle",
-        "How to blow a bubble with gum",
-        "How to juggle",
-        "How to fold a paper airplane",
-        "How to do a magic trick",
-        "How to make origami",
-        "How to solve a Rubik's cube",
-        "How to do a cartwheel",
-        "How to moonwalk",
-        "How to make a perfect omelet",
-        "How to skip stones",
-        "How to do a French braid",
-        "How to beatbox",
-        "How to coin roll"
-    ]
-
-    @State private var loadingMessageTimer: Timer?
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Group {
-                    if showInappropriateContentWarning {
-                        LinearGradient(gradient: Gradient(colors: [Color.black, Color.red]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    } else if units.isEmpty {
-                        LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    } else {
-                        LinearGradient(gradient: Gradient(colors: [Color.green, Color.blue]),
-                                       startPoint: .top,
-                                       endPoint: .bottom)
-                    }
-                }
-                .edgesIgnoringSafeArea(.all)
-                .alert("Choose a Topic", isPresented: $showDisambiguationAlert) {
-                    ForEach(disambiguationOptions, id: \.self) { option in
-                        Button(option) {
-                            topic = "\(topic) (\(option))"
-                            Task {
-                                await generateLessonContent()
-                            }
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {
-                        resetToMainPage()
-                    }
-                } message: {
-                    Text("The topic '\(topic)' has multiple meanings. Please choose one:")
-                }
-
-                VStack(spacing: 20) {
-                    if showInappropriateContentWarning {
-                        VStack(spacing: 20) {
-                            Text("WIZE doesn't want you learning that")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .padding()
-
-                            Button(action: resetToMainPage) {
-                                Text("Learn Something New")
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 20)
-                                    .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                                               startPoint: .leading,
-                                                               endPoint: .trailing))
-                                    .cornerRadius(20)
-                            }
-                        }
-                    } else if showSearchHistory {
-                        SearchHistoryView(
-                            recentSearches: $recentSearches,
-                            savedContent: $savedContent,
-                            searchesToDelete: $searchesToDelete,
-                            onSelect: selectSearch,
-                            onDelete: deleteSelectedSearches,
-                            onDismiss: { showSearchHistory = false }
-                        )
-                    } else {
-                        Button(action: learnRandomSkill) {
-                            HStack {
-                                Image(systemName: "dice")
-                                    .font(.system(size: 20))
-                                Text("Learn a Random Skill")
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 20)
-                            .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
-                                                       startPoint: .leading,
-                                                       endPoint: .trailing))
-                            .cornerRadius(20)
-                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-                        }
-                        .padding(.top, 40)
-                        
-                        HStack(spacing: 10) {
-                            FireLogoView(streak: streak, size: units.isEmpty ? 80 : 40)
-                                .animation(.easeInOut)
-                            
-                            Image("logoicon")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: units.isEmpty ? 65 : 40)
-                                .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
-                        }
-                        .padding(.vertical, 10)
-
-                        if !units.isEmpty {
-                            Text("Currently Learning: \(topic)")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.black.opacity(0.3))
-                                .cornerRadius(10)
-                                .padding(.horizontal)
-
-                            if showTableOfContents {
-                                TableOfContentsView(
-                                    units: units,
-                                    currentUnitIndex: $currentUnitIndex,
-                                    showTableOfContents: $showTableOfContents
-                                ) { selectedIndex in
-                                    currentUnitIndex = selectedIndex
-                                    showTableOfContents = false
-                                }
-                            } else {
-                                UnitView(
-                                    units: units,
-                                    currentUnitIndex: $currentUnitIndex,
-                                    currentCardIndex: $currentCardIndex,
-                                    showTableOfContents: $showTableOfContents
-                                ).frame(height: 450)  // Increased height for bigger index card
-                            
-
-                                HStack(spacing: 20) {
-                                    Button(action: resetToMainPage) {
-                                        HStack {
-                                            Image(systemName: "plus.circle")
-                                            Text("New Topic")
-                                                .fontWeight(.semibold)
+                                            CardContent(card: cards[index])
+                                                .opacity(index == currentIndex ? 1 : 0)
+                                                .scaleEffect(index == currentIndex ? 1 : 0.5)
                                         }
+                                    }
+                                    .gesture(
+                                        DragGesture()
+                                            .onEnded { value in
+                                                if value.translation.width < -50 && currentIndex < cards.count - 1 {
+                                                    withAnimation {
+                                                        currentIndex += 1
+                                                    }
+                                                } else if value.translation.width > 50 && currentIndex > 0 {
+                                                    withAnimation {
+                                                        currentIndex -= 1
+                                                    }
+                                                } else if value.translation.width < -50 && currentIndex == cards.count - 1 {
+                                                    onLastCardSwiped()
+                                                }
+                                            }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    struct UnitView: View {
+                        let units: [Unit]
+                        @Binding var currentUnitIndex: Int
+                        @Binding var currentCardIndex: Int
+                        @Binding var showTableOfContents: Bool
+
+                        var body: some View {
+                            VStack {
+                                Button(action: { showTableOfContents = true }) {
+                                    Text("Table of Contents")
+                                        .fontWeight(.semibold)
                                         .foregroundColor(.white)
                                         .padding(.vertical, 12)
                                         .padding(.horizontal, 20)
-                                        .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
-                                                                   startPoint: .leading,
-                                                                   endPoint: .trailing))
+                                        .background(Color.blue.opacity(0.6))
                                         .cornerRadius(20)
-                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-                                    }
-
-
-                                    Button(action: {
-                                        withAnimation {
-                                            showLoadingOverlay = true
-                                        }
-                                        updateLoadingMessage()
-                                        startLoadingMessageTimer()
-                                        Task {
-                                            await generateMoreUnits()
-                                        }
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "arrow.down.circle")
-                                            Text("Dive Deeper")
-                                                .fontWeight(.semibold)
-                                        }
-                                        .foregroundColor(.white)
-                                        .padding(.vertical, 12)
-                                        .padding(.horizontal, 20)
-                                        .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
-                                                                   startPoint: .leading,
-                                                                   endPoint: .trailing))
-                                        .cornerRadius(20)
-                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-                                    }
                                 }
                                 .padding(.top, 20)
-                            }
-                        }
 
-                        if showSearchBar {
-                            Spacer()
-                            
-                            VStack(spacing: 20) {
-                                HStack {
-                                    Image(systemName: "lightbulb.fill")
-                                        .foregroundColor(.yellow)
-                                        .font(.system(size: 24))
-                                        .padding(.leading, 16)
-                                    
-                                    TextField("What do you want to learn?", text: $topic)
-                                        .textFieldStyle(PlainTextFieldStyle())
-                                        .font(.system(size: 18, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .accentColor(.yellow)
-                                        .padding(.vertical, 12)
-                                    
-                                    if !topic.isEmpty {
-                                        Button(action: { topic = "" }) {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundColor(.white.opacity(0.7))
-                                        }
-                                        .padding(.trailing, 16)
-                                    }
-                                }
-                                .background(Color.white.opacity(0.2))
-                                .cornerRadius(25)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
-                                )
-                                .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                                Button(action: {
-                                    Task {
-                                        await generateLesson()
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "flame")
-                                        Text("Ignite Learning")
-                                            .fontWeight(.bold)
-                                    }
+                                Text("Unit \(currentUnitIndex + 1): \(units[currentUnitIndex].title)")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, 40)
-                                    .background(LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.green.opacity(0.1)]),
                                                                startPoint: .leading,
                                                                endPoint: .trailing))
-                                    .cornerRadius(25)
-                                    .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                    .cornerRadius(0)
+                                    .padding(.horizontal)
+
+                                CardView(cards: units[currentUnitIndex].cards, currentIndex: $currentCardIndex) {
+                                    if currentUnitIndex < units.count - 1 {
+                                        withAnimation {
+                                            currentUnitIndex += 1
+                                            currentCardIndex = 0
+                                        }
+                                    }
                                 }
-                                .disabled(isLoading || topic.isEmpty)
-                            }
-                            .padding(.horizontal, 20)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                            
-                            Spacer()
-                            
-                            Button(action: { showSearchHistory = true }) {
+
                                 HStack {
-                                    Image(systemName: "clock.arrow.circlepath")
-                                    Text("View Search History")
-                                        .fontWeight(.semibold)
+                                    Button(action: previousCard) {
+                                        Image(systemName: "chevron.left")
+                                            .foregroundColor(.white)
+                                    }
+
+                                    Spacer()
+
+                                    ForEach(0..<units[currentUnitIndex].cards.count, id: \.self) { index in
+                                        Circle()
+                                            .fill(index == currentCardIndex ? Color.white : Color.gray)
+                                            .frame(width: 8, height: 8)
+                                    }
+
+                                    Spacer()
+
+                                    Button(action: nextCard) {
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white)
+                                    }
                                 }
-                                .foregroundColor(.white)
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 20)
-                                .background(Color.blue.opacity(0.6))
-                                .cornerRadius(20)
-                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                .padding()
+
+                                if !showTableOfContents {
+                                    HStack {
+                                        Button(action: previousUnit) {
+                                            Text("Previous Unit")
+                                                .foregroundColor(.white)
+                                        }
+                                        .disabled(currentUnitIndex == 0)
+                                        Spacer()
+
+                                        Text("\(currentUnitIndex + 1) / \(units.count)")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+
+                                        Spacer()
+
+                                        Button(action: nextUnit) {
+                                            Text("Next Unit")
+                                                .foregroundColor(currentUnitIndex == units.count - 1 ? .gray : .white)
+                                        }
+                                        .disabled(currentUnitIndex == units.count - 1)
+                                    }
+                                    .padding()
+                                }
                             }
-                            .padding(.bottom, 20)
-                            
                         }
 
-                        if !debugText.isEmpty {
-                            Text(debugText)
-                                .font(.caption)
-                                .foregroundColor(.white)
+                        func previousUnit() {
+                            if currentUnitIndex > 0 {
+                                withAnimation {
+                                    currentUnitIndex -= 1
+                                    currentCardIndex = 0
+                                }
+                            }
                         }
 
-                        Spacer()
+                        func nextUnit() {
+                            if currentUnitIndex < units.count - 1 {
+                                withAnimation {
+                                    currentUnitIndex += 1
+                                    currentCardIndex = 0
+                                }
+                            }
+                        }
+
+                        func previousCard() {
+                            if currentCardIndex > 0 {
+                                withAnimation {
+                                    currentCardIndex -= 1
+                                }
+                            } else if currentUnitIndex > 0 {
+                                withAnimation {
+                                    currentUnitIndex -= 1
+                                    currentCardIndex = units[currentUnitIndex].cards.count - 1
+                                }
+                            }
+                        }
+
+                        func nextCard() {
+                            if currentCardIndex < units[currentUnitIndex].cards.count - 1 {
+                                withAnimation {
+                                    currentCardIndex += 1
+                                }
+                            } else if currentUnitIndex < units.count - 1 {
+                                withAnimation {
+                                    currentUnitIndex += 1
+                                    currentCardIndex = 0
+                                }
+                            }
+                        }
                     }
-                }
-                if showDisambiguation {
-                    Color.black.opacity(0.4)
-                        .edgesIgnoringSafeArea(.all)
-                        .onTapGesture {
-                            showDisambiguation = false
+
+                    struct FireLogoView: View {
+                        let streak: Int
+                        let size: CGFloat
+                        
+                        var body: some View {
+                            ZStack {
+                                Image(systemName: "flame.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .foregroundColor(.orange)
+                                    .frame(width: size, height: size)
+                                
+                                Text("\(streak)")
+                                    .font(.system(size: size * 0.4, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
                         }
-                    
-                    DisambiguationView(
-                        topic: topic,
-                        options: disambiguationOptions,
-                        onSelect: { selectedOption in
-                            if disambiguationOptions.contains(selectedOption) {
-                                topic = "\(topic) (\(selectedOption))"
-                            } else {
-                                topic = selectedOption // Use the custom input directly
-                            }
-                            showDisambiguation = false
-                            withAnimation {
-                                showLoadingOverlay = true
-                            }
-                            updateLoadingMessage()
-                            startLoadingMessageTimer()
-                            Task {
-                                await generateLessonContent()
-                            }
-                        },
-                        onCancel: {
-                            showDisambiguation = false
-                            resetToMainPage()
-                        }
-                    )
-                    .transition(.scale)
-                }
-
-                if showLoadingOverlay {
-                    LoadingOverlay(loadingMessage: $loadingMessage)
-                }
-            }
-        }
-        .onAppear {
-            loadSavedContent()
-            loadRecentSearches()
-            loadStreak()
-            updateStreak()
-        }
-    }
-
-    func learnRandomSkill() {
-        topic = randomSkills.randomElement() ?? "How to tie a tie"
-        Task {
-            await generateLesson()
-        }
-    }
-
-    func deleteSelectedSearches() {
-        for search in searchesToDelete {
-            if let index = recentSearches.firstIndex(of: search) {
-                recentSearches.remove(at: index)
-                savedContent.removeValue(forKey: search)
-            }
-        }
-        saveRecentSearches()
-        saveContentToUserDefaults()
-        searchesToDelete.removeAll()
-    }
-
-    func selectSearch(_ search: String) {
-        topic = search // This now includes the full key
-        print("Selecting search: \(search)")
-        if let savedUnits = savedContent[search] {
-            print("Found saved content for \(search). Units: \(savedUnits.count)")
-            DispatchQueue.main.async {
-                self.units = savedUnits
-                self.currentUnitIndex = 0
-                self.currentCardIndex = 0
-                withAnimation {
-                    self.showSearchBar = false
-                    self.showSearchHistory = false
-                    self.showTableOfContents = true
-                }
-            }
-        } else {
-            print("No saved content found for \(search). Generating new content.")
-            Task {
-                await generateLesson()
-            }
-        }
-    }
-    
-    func updateLoadingMessage() {
-        loadingMessage = loadingMessages.randomElement() ?? "Loading..."
-    }
-
-    func startLoadingMessageTimer() {
-        loadingMessageTimer?.invalidate()
-        loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            withAnimation {
-                updateLoadingMessage()
-            }
-        }
-    }
-
-    func stopLoadingMessageTimer() {
-        loadingMessageTimer?.invalidate()
-        loadingMessageTimer = nil
-    }
-
-    func generateLesson() async {
-        if let savedUnits = savedContent[topic] {
-                DispatchQueue.main.async {
-                    self.units = savedUnits
-                    self.isLoading = false
-                    withAnimation {
-                        self.showSearchBar = false
-                        self.showTableOfContents = true
                     }
-                }
-                return
-            }
-        
-        if !recentSearches.contains(topic) {
-            recentSearches.insert(topic, at: 0)
-            if recentSearches.count > 10 {  // Limit to 10 recent searches
-                recentSearches = Array(recentSearches.prefix(10))
-            }
-            saveRecentSearches()
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        debugText = ""
-        units.removeAll()
-        currentUnitIndex = 0
-        currentCardIndex = 0
-        
-        updateLoadingMessage()
-        startLoadingMessageTimer()
-        
-        withAnimation {
-            showSearchBar = false
-            showSearchHistory = false
-            showLoadingOverlay = true
-            
-        }
 
-        // Check for ambiguity
-        let ambiguityPrompt = """
-        The topic "\(topic)" might have multiple meanings. Please provide up to 3 distinct interpretations or contexts for this topic.
-        If there's only one clear meaning, just respond with "SINGLE_MEANING".
-        Format your response as:
-        1. [First interpretation]
-        2. [Second interpretation]
-        3. [Third interpretation]
-        Or simply "SINGLE_MEANING" if there's no ambiguity.
-        """
+                    struct DisambiguationView: View {
+                        let topic: String
+                        let options: [String]
+                        let onSelect: (String) -> Void
+                        let onCancel: () -> Void
+                        
+                        @State private var showOtherInput: Bool = false
+                        @State private var otherInput: String = ""
+                        
+                        var body: some View {
+                            VStack(spacing: 20) {
+                                Text("Choose a Topic")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                
+                                Text("The topic '\(topic)' has multiple meanings. Please choose one:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .multilineTextAlignment(.center)
+                                
+                                VStack(spacing: 12) {
+                                    ForEach(options, id: \.self) { option in
+                                        Button(action: { onSelect(option) }) {
+                                            Text(option)
+                                                .font(.body)
+                                                .foregroundColor(.white)
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color.white.opacity(0.2))
+                                                .cornerRadius(10)
+                                        }
+                                    }
+                                    
+                                    Button(action: { showOtherInput.toggle() }) {
+                                        Text("Other")
+                                            .font(.body)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.white.opacity(0.2))
+                                            .cornerRadius(10)
+                                    }
+                                    
+                                    if showOtherInput {
+                                        TextField("Enter your specific prompt", text: $otherInput)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                            .padding(.horizontal)
+                                        
+                                        Button(action: { onSelect(otherInput) }) {
+                                            Text("Submit Custom Prompt")
+                                                .font(.body)
+                                                .foregroundColor(.white)
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color.green.opacity(0.6))
+                                                .cornerRadius(10)
+                                        }
+                                        .disabled(otherInput.isEmpty)
+                                    }
+                                    
+                                    Button(action: onCancel) {
+                                        Text("Cancel")
+                                            .font(.body)
+                                            .foregroundColor(.white.opacity(0.7))
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.white.opacity(0.1))
+                                            .cornerRadius(10)
+                                    }
+                                }
+                            }
+                            .padding(30)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(LinearGradient(gradient: Gradient(colors: [Color.purple.opacity(0.8), Color.pink.opacity(0.8)]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                            )
+                            .shadow(radius: 10)
+                            .padding(.horizontal, 20)
+                        }
+                    }
 
-        do {
-            let ambiguityResponse = try await model.generateContent(ambiguityPrompt)
-            if let ambiguityText = ambiguityResponse.text {
-                if ambiguityText.trimmingCharacters(in: .whitespacesAndNewlines) == "SINGLE_MEANING" {
-                    await generateLessonContent()
-                } else {
-                    let options = ambiguityText.components(separatedBy: "\n")
-                        .map { $0.replacingOccurrences(of: "^\\d+\\.\\s*", with: "", options: .regularExpression) }
-                        .filter { !$0.isEmpty }
+                    struct ContentView: View {
+                        @State private var topic: String = ""
+                        @State private var units: [Unit] = []
+                        @State private var currentUnitIndex: Int = 0
+                        @State private var currentCardIndex: Int = 0
+                        @State private var isLoading = false
+                        @State private var errorMessage: String?
+                        @State private var debugText: String = ""
+                        @State private var loadingMessage: String = "Initializing your learning journey..."
+                        @State private var showSearchBar = true
+                        @State private var recentSearches: [String] = []
+                        @State private var savedContent: [String: [Unit]] = [:]
+                        @State private var showSearchHistory = false
+                        @State private var searchesToDelete: Set<String> = []
+                        @State private var showInappropriateContentWarning = false
+                        @State private var showTableOfContents = false
+                        @State private var showLoadingOverlay = false
+                        @State private var streak: Int = 0
+                        @State private var lastVisitDate: Date?
+                        @State private var disambiguationOptions: [String] = []
+                        @State private var showDisambiguationAlert: Bool = false
+                        @State private var showDisambiguation = false
+
+                        let model = GenerativeModel(name: "gemini-pro", apiKey: "AIzaSyCjTPZDl4OWfSFVuuNK4QCqjepfr4NnBmQ")
+
+                        let loadingMessages = [
+                            "Creating knowledge...",
+                            "Designing your future...",
+                            "Becoming your best self...",
+                            "Unlocking potential...",
+                            "Crafting brilliance...",
+                            "Igniting curiosity...",
+                            "Forging wisdom...",
+                            "Sculpting intellect...",
+                            "Brewing insights...",
+                            "Planting seeds of knowledge..."
+                        ]
+
+                        let randomSkills = [
+                            "How to tie a tie",
+                            "How to whistle",
+                            "How to blow a bubble with gum",
+                            "How to juggle",
+                            "How to fold a paper airplane",
+                            "How to do a magic trick",
+                            "How to make origami",
+                            "How to solve a Rubik's cube",
+                            "How to do a cartwheel",
+                            "How to moonwalk",
+                            "How to make a perfect omelet",
+                            "How to skip stones",
+                            "How to do a French braid",
+                            "How to beatbox",
+                            "How to coin roll"
+                        ]
+
+                        @State private var loadingMessageTimer: Timer?
+
+                        var body: some View {
+                            NavigationView {
+                                ZStack {
+                                    Group {
+                                        if showInappropriateContentWarning {
+                                            LinearGradient(gradient: Gradient(colors: [Color.black, Color.red]),
+                                                           startPoint: .top,
+                                                           endPoint: .bottom)
+                                        } else if units.isEmpty {
+                                            LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                           startPoint: .top,
+                                                           endPoint: .bottom)
+                                        } else {
+                                            LinearGradient(gradient: Gradient(colors: [Color.green, Color.blue]),
+                                                           startPoint: .top,
+                                                           endPoint: .bottom)
+                                        }
+                                    }
+                                    .edgesIgnoringSafeArea(.all)
+                                    .alert("Choose a Topic", isPresented: $showDisambiguationAlert) {
+                                        ForEach(disambiguationOptions, id: \.self) { option in
+                                            Button(option) {
+                                                topic = "\(topic) (\(option))"
+                                                Task {
+                                                    await generateLessonContent()
+                                                }
+                                            }
+                                        }
+                                        Button("Cancel", role: .cancel) {
+                                            resetToMainPage()
+                                        }
+                                    } message: {
+                                        Text("The topic '\(topic)' has multiple meanings. Please choose one:")
+                                    }
+
+                                    VStack(spacing: 20) {
+                                        if showInappropriateContentWarning {
+                                            VStack(spacing: 20) {
+                                                Text("WIZE doesn't want you learning that")
+                                                    .font(.title)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.white)
+                                                    .multilineTextAlignment(.center)
+                                                    .padding()
+
+                                                Button(action: resetToMainPage) {
+                                                    Text("Learn Something New")
+                                                        .fontWeight(.semibold)
+                                                        .foregroundColor(.white)
+                                                        .padding(.vertical, 12)
+                                                        .padding(.horizontal, 20)
+                                                        .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                                                   startPoint: .leading,
+                                                                                   endPoint: .trailing))
+                                                        .cornerRadius(20)
+                                                }
+                                            }
+                                        } else if showSearchHistory {
+                                            SearchHistoryView(
+                                                recentSearches: $recentSearches,
+                                                savedContent: $savedContent,
+                                                searchesToDelete: $searchesToDelete,
+                                                onSelect: selectSearch,
+                                                onDelete: deleteSelectedSearches,
+                                                onDismiss: { showSearchHistory = false }
+                                            )
+                                        } else {
+                                            Button(action: learnRandomSkill) {
+                                                HStack {
+                                                    Image(systemName: "dice")
+                                                        .font(.system(size: 20))
+                                                    Text("Learn a Random Skill")
+                                                        .fontWeight(.semibold)
+                                                }
+                                                .foregroundColor(.white)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 20)
+                                                .background(LinearGradient(gradient: Gradient(colors: [Color.orange, Color.yellow]),
+                                                                           startPoint: .leading,
+                                                                           endPoint: .trailing))
+                                                .cornerRadius(20)
+                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                            }
+                                            .padding(.top, 40)
+                                            
+                                            HStack(spacing: 10) {
+                                                FireLogoView(streak: streak, size: units.isEmpty ? 80 : 40)
+                                                    .animation(.easeInOut)
+                                                
+                                                Image("logoicon")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(height: units.isEmpty ? 65 : 40)
+                                                    .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 5)
+                                            }
+                                            .padding(.vertical, 10)
+
+                                            if !units.isEmpty {
+                                                Text("Currently Learning: \(topic)")
+                                                    .font(.headline)
+                                                    .foregroundColor(.white)
+                                                    .padding(.vertical, 10)
+                                                    .frame(maxWidth: .infinity)
+                                                    .background(Color.black.opacity(0.3))
+                                                    .cornerRadius(10)
+                                                    .padding(.horizontal)
+
+                                                if showTableOfContents {
+                                                    TableOfContentsView(
+                                                        units: units,
+                                                                                            currentUnitIndex: $currentUnitIndex,
+                                                                                            showTableOfContents: $showTableOfContents
+                                                                                        ) { selectedIndex in
+                                                                                            currentUnitIndex = selectedIndex
+                                                                                            showTableOfContents = false
+                                                                                        }
+                                                                                    } else {
+                                                                                        UnitView(
+                                                                                            units: units,
+                                                                                            currentUnitIndex: $currentUnitIndex,
+                                                                                            currentCardIndex: $currentCardIndex,
+                                                                                            showTableOfContents: $showTableOfContents
+                                                                                        ).frame(height: 450)  // Increased height for bigger index card
+                                                                                    
+
+                                                                                        HStack(spacing: 20) {
+                                                                                            Button(action: resetToMainPage) {
+                                                                                                HStack {
+                                                                                                    Image(systemName: "plus.circle")
+                                                                                                    Text("New Topic")
+                                                                                                        .fontWeight(.semibold)
+                                                                                                }
+                                                                                                .foregroundColor(.white)
+                                                                                                .padding(.vertical, 12)
+                                                                                                .padding(.horizontal, 20)
+                                                                                                .background(LinearGradient(gradient: Gradient(colors: [Color.red, Color.purple]),
+                                                                                                                           startPoint: .leading,
+                                                                                                                           endPoint: .trailing))
+                                                                                                .cornerRadius(20)
+                                                                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                            }
+
+
+                                                                                            Button(action: {
+                                                                                                withAnimation {
+                                                                                                    showLoadingOverlay = true
+                                                                                                }
+                                                                                                updateLoadingMessage()
+                                                                                                startLoadingMessageTimer()
+                                                                                                Task {
+                                                                                                    await generateMoreUnits()
+                                                                                                }
+                                                                                            }) {
+                                                                                                HStack {
+                                                                                                    Image(systemName: "arrow.down.circle")
+                                                                                                    Text("Dive Deeper")
+                                                                                                        .fontWeight(.semibold)
+                                                                                                }
+                                                                                                .foregroundColor(.white)
+                                                                                                .padding(.vertical, 12)
+                                                                                                .padding(.horizontal, 20)
+                                                                                                .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.green]),
+                                                                                                                           startPoint: .leading,
+                                                                                                                           endPoint: .trailing))
+                                                                                                .cornerRadius(20)
+                                                                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                                            }
+                                                                                        }
+                                                                                        .padding(.top, 20)
+                                                                                    }
+                                                                                }
+
+                                                                                if showSearchBar {
+                                                                                    Spacer()
+                                                                                    
+                                                                                    VStack(spacing: 20) {
+                                                                                        HStack {
+                                                                                            Image(systemName: "lightbulb.fill")
+                                                                                                .foregroundColor(.yellow)
+                                                                                                .font(.system(size: 24))
+                                                                                                .padding(.leading, 16)
+                                                                                            
+                                                                                            TextField("What do you want to learn?", text: $topic)
+                                                                                                .textFieldStyle(PlainTextFieldStyle())
+                                                                                                .font(.system(size: 18, weight: .medium))
+                                                                                                .foregroundColor(.white)
+                                                                                                .accentColor(.yellow)
+                                                                                                .padding(.vertical, 12)
+                                                                                            
+                                                                                            if !topic.isEmpty {
+                                                                                                Button(action: { topic = "" }) {
+                                                                                                    Image(systemName: "xmark.circle.fill")
+                                                                                                        .foregroundColor(.white.opacity(0.7))
+                                                                                                }
+                                                                                                .padding(.trailing, 16)
+                                                                                            }
+                                                                                        }
+                                                                                        .background(Color.white.opacity(0.2))
+                                                                                        .cornerRadius(25)
+                                                                                        .overlay(
+                                                                                            RoundedRectangle(cornerRadius: 25)
+                                                                                                .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                                                                                        )
+                                                                                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                                                                                        Button(action: {
+                                                                                            Task {
+                                                                                                await generateLesson()
+                                                                                            }
+                                                                                        }) {
+                                                                                            HStack {
+                                                                                                Image(systemName: "flame")
+                                                                                                Text("Ignite Learning")
+                                                                                                    .fontWeight(.bold)
+                                                                                            }
+                                                                                            .foregroundColor(.white)
+                                                                                            .padding(.vertical, 16)
+                                                                                            .padding(.horizontal, 40)
+                                                                                            .background(LinearGradient(gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                                                                                                       startPoint: .leading,
+                                                                                                                       endPoint: .trailing))
+                                                                                            .cornerRadius(25)
+                                                                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                                        }
+                                                                                        .disabled(isLoading || topic.isEmpty)
+                                                                                    }
+                                                                                    .padding(.horizontal, 20)
+                                                                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                                                                                    
+                                                                                    Spacer()
+                                                                                    
+                                                                                    Button(action: { showSearchHistory = true }) {
+                                                                                        HStack {
+                                                                                            Image(systemName: "clock.arrow.circlepath")
+                                                                                            Text("View Search History")
+                                                                                                .fontWeight(.semibold)
+                                                                                        }
+                                                                                        .foregroundColor(.white)
+                                                                                        .padding(.vertical, 12)
+                                                                                        .padding(.horizontal, 20)
+                                                                                        .background(Color.blue.opacity(0.6))
+                                                                                        .cornerRadius(20)
+                                                                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
+                                                                                    }
+                                                                                    .padding(.bottom, 20)
+                                                                                    
+                                                                                }
+
+                                                                                if !debugText.isEmpty {
+                                                                                    Text(debugText)
+                                                                                        .font(.caption)
+                                                                                        .foregroundColor(.white)
+                                                                                }
+
+                                                                                Spacer()
+                                                                            }
+                                                                        }
+                                                                        if showDisambiguation {
+                                                                            Color.black.opacity(0.4)
+                                                                                .edgesIgnoringSafeArea(.all)
+                                                                                .onTapGesture {
+                                                                                    showDisambiguation = false
+                                                                                }
+                                                                            
+                                                                            DisambiguationView(
+                                                                                topic: topic,
+                                                                                options: disambiguationOptions,
+                                                                                onSelect: { selectedOption in
+                                                                                    if disambiguationOptions.contains(selectedOption) {
+                                                                                        topic = "\(topic) (\(selectedOption))"
+                                                                                    } else {
+                                                                                        topic = selectedOption // Use the custom input directly
+                                                                                    }
+                                                                                    showDisambiguation = false
+                                                                                    withAnimation {
+                                                                                        showLoadingOverlay = true
+                                                                                    }
+                                                                                    updateLoadingMessage()
+                                                                                    startLoadingMessageTimer()
+                                                                                    Task {
+                                                                                        await generateLessonContent()
+                                                                                    }
+                                                                                },
+                                                                                onCancel: {
+                                                                                    showDisambiguation = false
+                                                                                    resetToMainPage()
+                                                                                }
+                                                                            )
+                                                                            .transition(.scale)
+                                                                        }
+
+                                                                        if showLoadingOverlay {
+                                                                            LoadingOverlay(loadingMessage: $loadingMessage)
+                                                                        }
+                                                                    }
+                                                                }
+                                                                .onAppear {
+                                                                    loadSavedContent()
+                                                                    loadRecentSearches()
+                                                                    loadStreak()
+                                                                    updateStreak()
+                                                                }
+                                                            }
+
+                                                            func learnRandomSkill() {
+                                                                topic = randomSkills.randomElement() ?? "How to tie a tie"
+                                                                Task {
+                                                                    await generateLesson()
+                                                                }
+                                                            }
+
+                                                            func deleteSelectedSearches() {
+                                                                for search in searchesToDelete {
+                                                                    if let index = recentSearches.firstIndex(of: search) {
+                                                                        recentSearches.remove(at: index)
+                                                                        savedContent.removeValue(forKey: search)
+                                                                    }
+                                                                }
+                                                                saveRecentSearches()
+                                                                saveContentToUserDefaults()
+                                                                searchesToDelete.removeAll()
+                                                            }
+
+                                                            func selectSearch(_ search: String) {
+                                                                topic = search
+                                                                if let savedUnits = savedContent[search] {
+                                                                    DispatchQueue.main.async {
+                                                                        self.units = savedUnits
+                                                                        self.currentUnitIndex = 0
+                                                                        self.currentCardIndex = 0
+                                                                        withAnimation {
+                                                                            self.showSearchBar = false
+                                                                            self.showSearchHistory = false
+                                                                            self.showTableOfContents = true
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    Task {
+                                                                        await generateLesson()
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            func updateLoadingMessage() {
+                                                                loadingMessage = loadingMessages.randomElement() ?? "Loading..."
+                                                            }
+
+                                                            func startLoadingMessageTimer() {
+                                                                loadingMessageTimer?.invalidate()
+                                                                loadingMessageTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                                                                    withAnimation {
+                                                                        updateLoadingMessage()
+                                                                    }
+                                                                }
+                                                            }
+
+                                                            func stopLoadingMessageTimer() {
+                                                                loadingMessageTimer?.invalidate()
+                                                                loadingMessageTimer = nil
+                                                            }
+
+                                                            func generateLesson() async {
+                                                                if let savedUnits = savedContent[topic] {
+                                                                    DispatchQueue.main.async {
+                                                                        self.units = savedUnits
+                                                                        self.isLoading = false
+                                                                        withAnimation {
+                                                                            self.showSearchBar = false
+                                                                            self.showTableOfContents = true
+                                                                        }
+                                                                    }
+                                                                    return
+                                                                }
+                                                                
+                                                                if !recentSearches.contains(topic) {
+                                                                    recentSearches.insert(topic, at: 0)
+                                                                    if recentSearches.count > 10 {  // Limit to 10 recent searches
+                                                                        recentSearches = Array(recentSearches.prefix(10))
+                                                                    }
+                                                                    saveRecentSearches()
+                                                                }
+                                                                
+                                                                isLoading = true
+                                                                errorMessage = nil
+                                                                debugText = ""
+                                                                units.removeAll()
+                                                                currentUnitIndex = 0
+                                                                currentCardIndex = 0
+                                                                
+                                                                updateLoadingMessage()
+                                                                startLoadingMessageTimer()
+                                                                
+                                                                withAnimation {
+                                                                    showSearchBar = false
+                                                                    showSearchHistory = false
+                                                                    showLoadingOverlay = true
+                                                                }
+
+                                                                // Check for ambiguity
+                                                                let ambiguityPrompt = """
+                                                                The topic "\(topic)" might have multiple meanings. Please provide up to 3 distinct interpretations or contexts for this topic.
+                                                                If there's only one clear meaning, just respond with "SINGLE_MEANING".
+                                                                Format your response as:
+                                                                1. [First interpretation]
+                                                                2. [Second interpretation]
+                                                                3. [Third interpretation]
+                                                                Or simply "SINGLE_MEANING" if there's no ambiguity.
+                                                                """
+
+                                                                do {
+                                                                    let ambiguityResponse = try await model.generateContent(ambiguityPrompt)
+                                                                    if let ambiguityText = ambiguityResponse.text {
+                                                                        if ambiguityText.trimmingCharacters(in: .whitespacesAndNewlines) == "SINGLE_MEANING" {
+                                                                            await generateLessonContent()
+                                                                        } else {
+                                                                            let options = ambiguityText.components(separatedBy: "\n")
+                                                                                .map { $0.replacingOccurrences(of: "^\\d+\\.\\s*", with: "", options: .regularExpression) }
+                                                                                .filter { !$0.isEmpty }
+                                                                            DispatchQueue.main.async {
+                                                                                self.disambiguationOptions = options
+                                                                                self.showDisambiguation = true
+                                                                                self.isLoading = false
+                                                                                self.stopLoadingMessageTimer()
+                                                                                self.showLoadingOverlay = false
+                                                                            }
+                                                                            return
+                                                                        }
+                                                                    }
+                                                                } catch {
+                                                                    DispatchQueue.main.async {
+                                                                        self.saveCurrentContent()
+                                                                        self.errorMessage = "Error: \(error.localizedDescription)"
+                                                                        self.isLoading = false
+                                                                        self.stopLoadingMessageTimer()
+                                                                        withAnimation {
+                                                                            self.showLoadingOverlay = false
+                                                                            self.showInappropriateContentWarning = true
+                                                                        }
+                                                                    }
+                                                                    return
+                                                                }
+                                                            }
+
+                                                            func generateLessonContent() async {
+                                                                let prompt = """
+                                                                Create a structured, formal microlearning curriculum for the topic: \(topic).
+                                                                Provide exactly 5 main units, each covering a unique aspect of the topic.
+                                                                For each unit, provide exactly 3 key points or concepts.
+                                                                Use formal language and ensure proper capitalization of all names, places, historical terms, and proper nouns.
+                                                                Format your response as follows:
+
+                                                                UNIT: [Unit 1 Title (properly capitalized)]
+                                                                TITLE: [Title for point 1 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 2 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 3 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                                ---
+                                                                UNIT: [Unit 2 Title (properly capitalized)]
+                                                                TITLE: [Title for point 1 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 2 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 3 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                                ---
+                                                                UNIT: [Unit 3 Title (properly capitalized)]
+                                                                TITLE: [Title for point 1 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 2 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 3 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                                ---
+                                                                UNIT: [Unit 4 Title (properly capitalized)]
+                                                                TITLE: [Title for point 1 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 2 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 3 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+                                                                ---
+                                                                UNIT: [Unit 5 Title (properly capitalized)]
+                                                                TITLE: [Title for point 1 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 2 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
+                                                                TITLE: [Title for point 3 (properly capitalized)]
+                                                                CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
+
+                                                                Ensure each unit has a clear, distinct focus within the overall topic.
+                Use formal language and proper capitalization throughout, especially for names, places, and historical terms.
+                It is crucial that you provide exactly 5 units, no more and no less.
+                Do not use any markdown formatting. Use plain text only.
+                """
+
+                do {
+                    let response = try await model.generateContent(prompt)
+                    if let text = response.text {
+                        await processGeneratedContent(text)
+                    }
+
                     DispatchQueue.main.async {
-                        self.disambiguationOptions = options
-                        self.showDisambiguation = true
+                        self.isLoading = false
+                        self.saveCurrentContent()
+                        self.stopLoadingMessageTimer()
+                        withAnimation {
+                            self.showLoadingOverlay = false
+                            self.showTableOfContents = false  // Don't show table of contents after generating content
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.errorMessage = "Error: \(error.localizedDescription)"
                         self.isLoading = false
                         self.stopLoadingMessageTimer()
-                        self.showLoadingOverlay = false
+                        withAnimation {
+                            self.showLoadingOverlay = false
+                            self.showInappropriateContentWarning = true
+                        }
                     }
-                    return
                 }
             }
-        } catch {
-            DispatchQueue.main.async {
-                self.saveCurrentContent()
-                self.errorMessage = "Error: \(error.localizedDescription)"
-                self.isLoading = false
-                self.stopLoadingMessageTimer()
-                withAnimation {
-                    self.showLoadingOverlay = false
-                    self.showInappropriateContentWarning = true
-                }
-            }
-            return
-        }
-    }
+            
+            func processGeneratedContent(_ content: String) async {
+                let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
+                var newUnits: [Unit] = []
 
-    func generateLessonContent() async {
-        let prompt = """
-        Create a structured, formal microlearning curriculum for the topic: \(topic).
-        Provide exactly 5 main units, each covering a unique aspect of the topic.
-        For each unit, provide exactly 3 key points or concepts.
-        Use formal language and ensure proper capitalization of all names, places, historical terms, and proper nouns.
-        Format your response as follows:
-
-        UNIT: [Unit 1 Title (properly capitalized)]
-        TITLE: [Title for point 1 (properly capitalized)]
-        CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 2 (properly capitalized)]
-        CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 3 (properly capitalized)]
-        CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-        ---
-        UNIT: [Unit 2 Title (properly capitalized)]
-        TITLE: [Title for point 1 (properly capitalized)]
-        CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 2 (properly capitalized)]
-        CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 3 (properly capitalized)]
-        CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-        ---
-        UNIT: [Unit 3 Title (properly capitalized)]
-        TITLE: [Title for point 1 (properly capitalized)]
-        CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 2 (properly capitalized)]
-        CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 3 (properly capitalized)]
-        CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-        ---
-        UNIT: [Unit 4 Title (properly capitalized)]
-        TITLE: [Title for point 1 (properly capitalized)]
-        CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 2 (properly capitalized)]
-        CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 3 (properly capitalized)]
-        CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-        ---
-        UNIT: [Unit 5 Title (properly capitalized)]
-        TITLE: [Title for point 1 (properly capitalized)]
-        CONTENT: [Formal explanation for point 1, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 2 (properly capitalized)]
-        CONTENT: [Formal explanation for point 2, 20-50 words, with proper capitalization of all proper nouns]
-        TITLE: [Title for point 3 (properly capitalized)]
-        CONTENT: [Formal explanation for point 3, 20-50 words, with proper capitalization of all proper nouns]
-
-        Ensure each unit has a clear, distinct focus within the overall topic.
-        Use formal language and proper capitalization throughout, especially for names, places, and historical terms.
-        It is crucial that you provide exactly 5 units, no more and no less.
-        Do not use any markdown formatting. Use plain text only.
-        """
-
-        do {
-            let response = try await model.generateContent(prompt)
-            if let text = response.text {
-                await processGeneratedContent(text)
-            }
-
-            DispatchQueue.main.async {
-                self.isLoading = false
-                self.saveCurrentContent()
-                self.stopLoadingMessageTimer()
-                withAnimation {
-                    self.showLoadingOverlay = false
-                    self.showTableOfContents = false  // Don't show table of contents after generating content
-                }
-            }
-        } catch {
-            DispatchQueue.main.async {
-                self.errorMessage = "Error: \(error.localizedDescription)"
-                self.isLoading = false
-                self.stopLoadingMessageTimer()
-                withAnimation {
-                    self.showLoadingOverlay = false
-                    self.showInappropriateContentWarning = true
-                }
-            }
-        }
-    }
-    
-    func processGeneratedContent(_ content: String) async {
-        let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
-        var newUnits: [Unit] = []
-
-        for section in unitSections {
-            let lines = section.split(separator: "\n", omittingEmptySubsequences: true)
-            if lines.count >= 7 {
-                var unitTitle = String(lines[0].dropFirst(6))
-                unitTitle = unitTitle.trimmingCharacters(in: .punctuationCharacters)
-                
-                var cards: [Card] = []
-
-                for i in stride(from: 1, to: lines.count, by: 2) {
-                    if i + 1 < lines.count {
-                        let title = String(lines[i].dropFirst(7)).trimmingCharacters(in: .whitespaces)
-                        var content = String(lines[i + 1].dropFirst(9)).trimmingCharacters(in: .whitespaces)
+                for section in unitSections {
+                    let lines = section.split(separator: "\n", omittingEmptySubsequences: true)
+                    if lines.count >= 7 {
+                        var unitTitle = String(lines[0].dropFirst(6))
+                        unitTitle = unitTitle.trimmingCharacters(in: .punctuationCharacters)
                         
-                        // Ensure content is a complete sentence with proper capitalization
-                        if !content.isEmpty {
-                            content = content.lowercased()
-                            content = content.prefix(1).uppercased() + content.dropFirst()
-                            if !content.hasSuffix(".") && !content.hasSuffix("!") && !content.hasSuffix("?") {
-                                content += "."
+                        var cards: [Card] = []
+
+                        for i in stride(from: 1, to: lines.count, by: 2) {
+                            if i + 1 < lines.count {
+                                let title = String(lines[i].dropFirst(7)).trimmingCharacters(in: .whitespaces)
+                                var content = String(lines[i + 1].dropFirst(9)).trimmingCharacters(in: .whitespaces)
+                                
+                                // Ensure content is a complete sentence with proper capitalization
+                                if !content.isEmpty {
+                                    content = content.lowercased()
+                                    content = content.prefix(1).uppercased() + content.dropFirst()
+                                    if !content.hasSuffix(".") && !content.hasSuffix("!") && !content.hasSuffix("?") {
+                                        content += "."
+                                    }
+                                }
+                                
+                                let category = ContentCategory.matchCategory(for: content)
+                                cards.append(Card(title: title, content: content, category: category))
                             }
                         }
-                        
-                        let category = ContentCategory.matchCategory(for: content)
-                        cards.append(Card(title: title, content: content, category: category))
+
+                        // Ensure we have exactly 3 cards per unit
+                        while cards.count < 3 {
+                            cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
+                        }
+                        cards = Array(cards.prefix(3))
+
+                        newUnits.append(Unit(title: unitTitle, cards: cards))
                     }
                 }
 
-                // Ensure we have exactly 3 cards per unit
-                while cards.count < 3 {
-                    cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
-                }
-                cards = Array(cards.prefix(3))
-
-                newUnits.append(Unit(title: unitTitle, cards: cards))
-            }
-        }
-
-        DispatchQueue.main.async {
-                self.units = newUnits
-                self.saveCurrentContent() // Make sure this is called
-                self.isLoading = false
-                self.stopLoadingMessageTimer()
-                withAnimation {
-                    self.showLoadingOverlay = false
-                    self.showTableOfContents = false
-                }
-            }
-    }
-
-    func resetToMainPage() {
-        withAnimation {
-            showSearchBar = true
-            units.removeAll()
-            topic = ""
-            errorMessage = nil
-            debugText = ""
-            showInappropriateContentWarning = false
-            showTableOfContents = false
-            disambiguationOptions.removeAll()
-            showDisambiguation = false
-        }
-    }
-
-    func loadRecentSearches() {
-        if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
-            recentSearches = savedSearches
-        }
-    }
-
-    func saveRecentSearches() {
-        UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
-    }
-
-    func saveCurrentContent() {
-        print("Saving content for topic: \(topic)")
-        savedContent[topic] = units
-        print("Number of units saved: \(units.count)")
-        saveContentToUserDefaults()
-        print("Current keys in savedContent after saving: \(savedContent.keys.sorted())")
-    }
-    
-    func saveContentToUserDefaults() {
-        if let encodedContent = try? JSONEncoder().encode(savedContent) {
-            UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
-        }
-    }
-
-    func loadSavedContent() {
-        if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent") {
-            do {
-                let decodedContent = try JSONDecoder().decode([String: [Unit]].self, from: savedContentData)
                 DispatchQueue.main.async {
-                    self.savedContent = decodedContent
-                    print("Loaded saved content:")
-                    for (topic, units) in decodedContent {
-                        print("Topic: \(topic), Units: \(units.count)")
+                    self.units = newUnits
+                    self.saveCurrentContent() // Make sure this is called
+                    self.isLoading = false
+                    self.stopLoadingMessageTimer()
+                    withAnimation {
+                        self.showLoadingOverlay = false
+                        self.showTableOfContents = false
                     }
                 }
-            } catch {
-                print("Error decoding saved content: \(error)")
             }
-        } else {
-            print("No saved content found in UserDefaults")
-        }
-    }
 
-    func generateMoreUnits() async {
-        let currentUnitCount = units.count
-        let prompt = """
-        Continue the microlearning curriculum for the topic: \(topic).
-        We already have \(currentUnitCount) units. Please provide EXACTLY 3 more units, each covering a unique aspect of the topic that hasn't been covered yet.
-        For each unit, provide exactly 3 key points or concepts.
-        Format your response as follows:
-
-        UNIT: [Unit \(currentUnitCount + 1) Title]
-        TITLE: [Title for point 1]
-        CONTENT: [Explanation for point 1, keep it under 50 words]
-        TITLE: [Title for point 2]
-        CONTENT: [Explanation for point 2, keep it under 50 words]
-        TITLE: [Title for point 3]
-        CONTENT: [Explanation for point 3, keep it under 50 words]
-        ---
-        UNIT: [Unit \(currentUnitCount + 2) Title]
-        ... (repeat the structure for all 3 new units)
-
-        Ensure each unit has a clear, distinct focus within the overall topic.
-        Do not use any markdown formatting. Use plain text only.
-        It is CRUCIAL that you provide EXACTLY 3 new units, no more and no less.
-        """
-
-        do {
-            let response = try await model.generateContent(prompt)
-            if let text = response.text {
-                await processAdditionalUnits(text)
-            }
-            DispatchQueue.main.async {
-                self.stopLoadingMessageTimer()
+            func resetToMainPage() {
                 withAnimation {
-                    self.showLoadingOverlay = false
+                    showSearchBar = true
+                    units.removeAll()
+                    topic = ""
+                    errorMessage = nil
+                    debugText = ""
+                    showInappropriateContentWarning = false
+                    showTableOfContents = false
+                    disambiguationOptions.removeAll()
+                    showDisambiguation = false
                 }
             }
-        } catch {
-            DispatchQueue.main.async {
-                self.errorMessage = "Error generating more units: \(error.localizedDescription)"
-                self.stopLoadingMessageTimer()
-                withAnimation {
-                    self.showLoadingOverlay = false
+
+            func loadRecentSearches() {
+                if let savedSearches = UserDefaults.standard.stringArray(forKey: "RecentSearches") {
+                    recentSearches = savedSearches
                 }
             }
-        }
-    }
 
-    func processAdditionalUnits(_ content: String) async {
-        let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
-        var newUnits: [Unit] = []
-
-        for section in unitSections {
-            let lines = section.split(separator: "\n")
-            if lines.count >= 7 {
-                let unitTitle = String(lines[0].dropFirst(6))
-                var cards: [Card] = []
-
-                for i in stride(from: 1, to: lines.count, by: 2) {
-                    if i + 1 < lines.count {
-                        let title = String(lines[i].dropFirst(7))
-                        let content = String(lines[i + 1].dropFirst(9))
-                        let category = ContentCategory.matchCategory(for: content)
-                        cards.append(Card(title: title, content: content, category: category))
-                    }
-                }
-
-                // Ensure we have exactly 3 cards per unit
-                while cards.count < 3 {
-                    cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
-                }
-                cards = Array(cards.prefix(3))
-
-                newUnits.append(Unit(title: unitTitle, cards: cards))
+            func saveRecentSearches() {
+                UserDefaults.standard.set(recentSearches, forKey: "RecentSearches")
             }
-        }
 
-        // Ensure we have exactly 3 new units
-        while newUnits.count < 3 {
-            newUnits.append(Unit(title: "Additional Unit", cards: [
-                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
-                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
-                Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other)
-            ]))
-        }
-        newUnits = Array(newUnits.prefix(3))
-
-        DispatchQueue.main.async {
-            self.units.append(contentsOf: newUnits)
-            self.saveCurrentContent()
-        }
-    }
-
-    func loadStreak() {
-        if let savedStreak = UserDefaults.standard.object(forKey: "Streak") as? Int {
-            streak = savedStreak
-        }
-        if let savedDate = UserDefaults.standard.object(forKey: "LastVisitDate") as? Date {
-            lastVisitDate = savedDate
-        }
-    }
-
-    func saveStreak() {
-        UserDefaults.standard.set(streak, forKey: "Streak")
-        UserDefaults.standard.set(lastVisitDate, forKey: "LastVisitDate")
-    }
-
-    func updateStreak() {
-        let currentDate = Date()
-        let calendar = Calendar.current
-
-        if let lastVisit = lastVisitDate {
-            if calendar.isDate(currentDate, inSameDayAs: lastVisit) {
-                // Do nothing if it's the same day
-            } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: currentDate),
-                      calendar.isDate(lastVisit, inSameDayAs: yesterday) {
-                // Increment streak if the last visit was yesterday
-                streak += 1
-            } else {
-                // Reset streak if there's a gap
-                streak = 1
+            func saveCurrentContent() {
+                savedContent[topic] = units
+                saveContentToUserDefaults()
             }
-        } else {
-            // First visit
-            streak = 1
-        }
-
-        lastVisitDate = currentDate
-        saveStreak()
-    }
-}
-
-struct LoadingOverlay: View {
-    @Binding var loadingMessage: String
-    
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-                .edgesIgnoringSafeArea(.all)
             
-            VStack {
-                Text(loadingMessage)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.bottom, 20)
-                ScatteredQuantumLoader()
-                    .frame(width: 200, height: 200)
+            func saveContentToUserDefaults() {
+                if let encodedContent = try? JSONEncoder().encode(savedContent) {
+                    UserDefaults.standard.set(encodedContent, forKey: "SavedContent")
+                }
+            }
+
+            func loadSavedContent() {
+                if let savedContentData = UserDefaults.standard.data(forKey: "SavedContent") {
+                    do {
+                        let decodedContent = try JSONDecoder().decode([String: [Unit]].self, from: savedContentData)
+                        DispatchQueue.main.async {
+                            self.savedContent = decodedContent
+                        }
+                    } catch {
+                        print("Error decoding saved content: \(error)")
+                    }
+                }
+            }
+
+            func generateMoreUnits() async {
+                let currentUnitCount = units.count
+                let prompt = """
+                Continue the microlearning curriculum for the topic: \(topic).
+                We already have \(currentUnitCount) units. Please provide EXACTLY 3 more units, each covering a unique aspect of the topic that hasn't been covered yet.
+                For each unit, provide exactly 3 key points or concepts.
+                Format your response as follows:
+
+                UNIT: [Unit \(currentUnitCount + 1) Title]
+                TITLE: [Title for point 1]
+                CONTENT: [Explanation for point 1, keep it under 50 words]
+                TITLE: [Title for point 2]
+                CONTENT: [Explanation for point 2, keep it under 50 words]
+                TITLE: [Title for point 3]
+                CONTENT: [Explanation for point 3, keep it under 50 words]
+                ---
+                UNIT: [Unit \(currentUnitCount + 2) Title]
+                ... (repeat the structure for all 3 new units)
+
+                Ensure each unit has a clear, distinct focus within the overall topic.
+                Do not use any markdown formatting. Use plain text only.
+                It is CRUCIAL that you provide EXACTLY 3 new units, no more and no less.
+                """
+
+                do {
+                    let response = try await model.generateContent(prompt)
+                    if let text = response.text {
+                        await processAdditionalUnits(text)
+                    }
+                    DispatchQueue.main.async {
+                        self.stopLoadingMessageTimer()
+                        withAnimation {
+                            self.showLoadingOverlay = false
+                        }
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self.errorMessage = "Error generating more units: \(error.localizedDescription)"
+                        self.stopLoadingMessageTimer()
+                        withAnimation {
+                            self.showLoadingOverlay = false
+                        }
+                    }
+                }
+            }
+
+            func processAdditionalUnits(_ content: String) async {
+                let unitSections = content.components(separatedBy: "---").filter { !$0.isEmpty }
+                var newUnits: [Unit] = []
+
+                for section in unitSections {
+                    let lines = section.split(separator: "\n")
+                    if lines.count >= 7 {
+                        let unitTitle = String(lines[0].dropFirst(6))
+                        var cards: [Card] = []
+
+                        for i in stride(from: 1, to: lines.count, by: 2) {
+                            if i + 1 < lines.count {
+                                let title = String(lines[i].dropFirst(7))
+                                let content = String(lines[i + 1].dropFirst(9))
+                                let category = ContentCategory.matchCategory(for: content)
+                                cards.append(Card(title: title, content: content, category: category))
+                            }
+                        }
+
+                        // Ensure we have exactly 3 cards per unit
+                        while cards.count < 3 {
+                            cards.append(Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other))
+                        }
+                        cards = Array(cards.prefix(3))
+
+                        newUnits.append(Unit(title: unitTitle, cards: cards))
+                    }
+                }
+
+                // Ensure we have exactly 3 new units
+                while newUnits.count < 3 {
+                    newUnits.append(Unit(title: "Additional Unit", cards: [
+                        Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
+                        Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other),
+                        Card(title: "Additional Information", content: "Content for this card is currently unavailable.", category: .other)
+                    ]))
+                }
+                newUnits = Array(newUnits.prefix(3))
+
+                DispatchQueue.main.async {
+                    self.units.append(contentsOf: newUnits)
+                    self.saveCurrentContent()
+                }
+            }
+
+            func loadStreak() {
+                if let savedStreak = UserDefaults.standard.object(forKey: "Streak") as? Int {
+                    streak = savedStreak
+                }
+                if let savedDate = UserDefaults.standard.object(forKey: "LastVisitDate") as? Date {
+                    lastVisitDate = savedDate
+                }
+            }
+
+            func saveStreak() {
+                UserDefaults.standard.set(streak, forKey: "Streak")
+                UserDefaults.standard.set(lastVisitDate, forKey: "LastVisitDate")
+            }
+
+            func updateStreak() {
+                let currentDate = Date()
+                let calendar = Calendar.current
+
+                if let lastVisit = lastVisitDate {
+                    if calendar.isDate(currentDate, inSameDayAs: lastVisit) {
+                        // Do nothing if it's the same day
+                    } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: currentDate),
+                              calendar.isDate(lastVisit, inSameDayAs: yesterday) {
+                        // Increment streak if the last visit was yesterday
+                        streak += 1
+                    } else {
+                        // Reset streak if there's a gap
+                        streak = 1
+                    }
+                } else {
+                    // First visit
+                    streak = 1
+                }
+
+                lastVisitDate = currentDate
+                saveStreak()
             }
         }
-    }
-}
 
-@main
-struct YourAppNameApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
+        struct LoadingOverlay: View {
+            @Binding var loadingMessage: String
+            
+            var body: some View {
+                ZStack {
+                    Color.black.opacity(0.7)
+                        .edgesIgnoringSafeArea(.all)
+                    
+                    VStack {
+                        Text(loadingMessage)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 20)
+                        ScatteredQuantumLoader()
+                            .frame(width: 200, height: 200)
+                    }
+                }
+            }
         }
-    }
-}
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-}
+        @main
+        struct YourAppNameApp: App {
+            var body: some Scene {
+                WindowGroup {
+                    ContentView()
+                }
+            }
+        }
+
+        struct ContentView_Previews: PreviewProvider {
+            static var previews: some View {
+                ContentView()
+            }
+        }
