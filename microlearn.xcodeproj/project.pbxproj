@@ -35,7 +35,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		8CEF254B2C75BF19002DE741 /* microlearn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = microlearn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8CEF254B2C75BF19002DE741 /* WIZE.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WIZE.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CEF254E2C75BF19002DE741 /* microlearnApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = microlearnApp.swift; sourceTree = "<group>"; };
 		8CEF25502C75BF19002DE741 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		8CEF25522C75BF1B002DE741 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -87,7 +87,7 @@
 		8CEF254C2C75BF19002DE741 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8CEF254B2C75BF19002DE741 /* microlearn.app */,
+				8CEF254B2C75BF19002DE741 /* WIZE.app */,
 				8CEF255B2C75BF1B002DE741 /* microlearnTests.xctest */,
 				8CEF25652C75BF1B002DE741 /* microlearnUITests.xctest */,
 			);
@@ -157,7 +157,7 @@
 				8CEF257A2C75C549002DE741 /* GoogleGenerativeAI */,
 			);
 			productName = microlearn;
-			productReference = 8CEF254B2C75BF19002DE741 /* microlearn.app */;
+			productReference = 8CEF254B2C75BF19002DE741 /* WIZE.app */;
 			productType = "com.apple.product-type.application";
 		};
 		8CEF255A2C75BF1B002DE741 /* microlearnTests */ = {
@@ -451,8 +451,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.guchar.microlearn;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.guchar.wize;
+				PRODUCT_NAME = WIZE;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -480,8 +480,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.guchar.microlearn;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.guchar.wize;
+				PRODUCT_NAME = WIZE;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
